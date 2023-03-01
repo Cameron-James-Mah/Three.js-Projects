@@ -1,0 +1,10 @@
+#info {
+    position: absolute;
+    top: 2vh;
+    right: 3vw;
+    font-size: 3rem;
+    text-align: center;
+    z-index: 100;
+    display: block;
+    color: white
+}
