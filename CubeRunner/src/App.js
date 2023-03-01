@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from 'three';
 import "./App.css"
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, ListItem } from "@mui/material";
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 
 
 const playerSpeed = 0.6
