@@ -4,8 +4,10 @@ import "./App.css"
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 
 
-const playerSpeed = 0.6
-const playerTurnSpeed = 0.3
+
+let playerSpeed = 0.6
+let playerTurnSpeed = 0.3
+let spawnRate = 70
 const playerSize = 0.6
 
 const scene = new THREE.Scene();
@@ -123,6 +125,7 @@ function App() {
   }
 
   function animate(){
+    console.log(playerTurnSpeed)
     setScore(score => score + 1)
 	  renderer.render( scene, camera );
     camera.position.y += playerSpeed
@@ -137,7 +140,7 @@ function App() {
       player.position.x -= playerTurnSpeed
       camera.position.x -= playerTurnSpeed
     }
-    if(spawn == 90){//Spawn next cubes 
+    if(spawn == spawnRate){//Spawn next cubes 
       for(let i = 0; i < 50; i++){ //Spawn 50 cubes
         const edges = new THREE.EdgesGeometry( geometry );
         const newCube = new THREE.LineSegments( edges, new THREE.LineBasicMaterial( { color: "green" } ) );
@@ -158,6 +161,10 @@ function App() {
     
   }
   useEffect(()=>{
+    playerSpeed = parseFloat(process.env.REACT_APP_PLAYER_SPEED)
+    playerTurnSpeed = parseFloat(process.env.REACT_APP_PLAYER_TURN_SPEED)
+    spawnRate = parseInt(process.env.REACT_APP_CUBE_SPAWN_RATE)
+    
     animate()
   },[])
   return (
