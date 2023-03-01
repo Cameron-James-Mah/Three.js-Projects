@@ -125,7 +125,6 @@ function App() {
   }
 
   function animate(){
-    console.log(playerTurnSpeed)
     setScore(score => score + 1)
 	  renderer.render( scene, camera );
     camera.position.y += playerSpeed
@@ -141,12 +140,12 @@ function App() {
       camera.position.x -= playerTurnSpeed
     }
     if(spawn == spawnRate){//Spawn next cubes 
-      for(let i = 0; i < 50; i++){ //Spawn 50 cubes
+      for(let i = 0; i < parseInt(process.env.REACT_APP_SPAWN_AMOUNT); i++){ //Spawn 50 cubes
         const edges = new THREE.EdgesGeometry( geometry );
         const newCube = new THREE.LineSegments( edges, new THREE.LineBasicMaterial( { color: "green" } ) );
         //const newCube = new THREE.Mesh(geometry, material)
-        newCube.position.y = player.position.y + 220 + Math.floor(Math.random()*30) //Add variance to forward distance from player
-        newCube.position.x = Math.floor((Math.random()*120)*(Math.round(Math.random()) ? 1 : -1))+player.position.x //Add variance to side distance from player
+        newCube.position.y = player.position.y + parseInt(process.env.REACT_APP_SPAWN_DISTANCE) + Math.floor(Math.random()*30) //Add variance to forward distance from player
+        newCube.position.x = Math.floor((Math.random()*parseInt(process.env.REACT_APP_SPAWN_RANGE))*(Math.round(Math.random()) ? 1 : -1))+player.position.x //Add variance to side distance from player
         scene.add(newCube)
         collidableMeshList.push(newCube) //Add to list of cubes to check for collisions
       }
