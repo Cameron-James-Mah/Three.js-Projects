@@ -193,7 +193,7 @@ function App() {
         collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
       }
       playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
-      spawnRate = Math.ceil(spawnRate*0.2)
+      spawnRate = Math.ceil(spawnRate*0.8)
     }
     if(scoreRef.current == 3000){
       difficulty.current = 3
@@ -201,7 +201,7 @@ function App() {
         collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
       }
       playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
-      spawnRate = Math.ceil(spawnRate*0.2)
+      spawnRate = Math.ceil(spawnRate*0.8)
     }
     if(scoreRef.current == 4000){
       difficulty.current = 4
@@ -209,7 +209,7 @@ function App() {
         collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
       }
       playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
-      spawnRate = Math.ceil(spawnRate*0.2)
+      spawnRate = Math.ceil(spawnRate*0.8)
     }
     
     
