@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from 'three';
-import "./App.css"
+import "./Game.css"
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import bgm from '../media/CubeRunnerMusic.mp3'
 
@@ -55,6 +55,9 @@ let collidableMeshList = []
 
 let difficultyColors = ["green","skyblue", "red", "purple", "white"]
 
+let clock = new THREE.Clock()
+let delta = 0
+let interval = 1/60 //60 fps
 
 
 function App() {
@@ -130,87 +133,92 @@ function App() {
   }
 
   function animate(){
-    setScore(score => score + 1)
-    scoreRef.current++
-	  renderer.render( scene, camera );
-    camera.position.y += playerSpeed
-    player.position.y += playerSpeed
-    checkCollision()
-    clearCubes()
-    if(rightInput){
-      player.position.x += playerTurnSpeed
-      camera.position.x += playerTurnSpeed
-      if(camera.rotation.z > -0.2){
-        camera.rotation.z -= rotationSpeed
+    delta += clock.getDelta()
+    if(delta > interval){
+      setScore(score => score + 1)
+      scoreRef.current++
+      renderer.render( scene, camera );
+      camera.position.y += playerSpeed
+      player.position.y += playerSpeed
+      checkCollision()
+      clearCubes()
+      if(rightInput){
+        player.position.x += playerTurnSpeed
+        camera.position.x += playerTurnSpeed
+        if(camera.rotation.z > -0.2){
+          camera.rotation.z -= rotationSpeed
+        }
+        
       }
-      
-    }
-    else if(leftInput){
-      player.position.x -= playerTurnSpeed
-      camera.position.x -= playerTurnSpeed
-      if(camera.rotation.z < 0.2){
-        camera.rotation.z += rotationSpeed
+      else if(leftInput){
+        player.position.x -= playerTurnSpeed
+        camera.position.x -= playerTurnSpeed
+        if(camera.rotation.z < 0.2){
+          camera.rotation.z += rotationSpeed
+        }
+        
       }
-      
-    }
-    else{
-      if(camera.rotation.z < 0){
-        camera.rotation.z += rotationSpeed
+      else{
+        if(camera.rotation.z < 0){
+          camera.rotation.z += rotationSpeed
+        }
+        else if(camera.rotation.z > 0){
+          camera.rotation.z -= rotationSpeed
+        }
       }
-      else if(camera.rotation.z > 0){
-        camera.rotation.z -= rotationSpeed
+      if(spawn >= spawnRate){//Spawn next cubes 
+        for(let i = 0; i < parseInt(process.env.REACT_APP_SPAWN_AMOUNT); i++){ //Spawn 50 cubes
+          const edges = new THREE.EdgesGeometry( geometry );
+          const newCube = new THREE.LineSegments( edges, new THREE.LineBasicMaterial( { color: difficultyColors[difficulty.current] } ) );
+          //const newCube = new THREE.Mesh(geometry, material)
+          newCube.position.y = player.position.y + parseInt(process.env.REACT_APP_SPAWN_DISTANCE) + Math.floor(Math.random()*30) //Add variance to forward distance from player
+          newCube.position.x = Math.floor((Math.random()*parseInt(process.env.REACT_APP_SPAWN_RANGE))*(Math.round(Math.random()) ? 1 : -1))+player.position.x //Add variance to side distance from player
+          scene.add(newCube)
+          collidableMeshList.push(newCube) //Add to list of cubes to check for collisions
+        }
+        spawn = 0
       }
-    }
-    if(spawn >= spawnRate){//Spawn next cubes 
-      for(let i = 0; i < parseInt(process.env.REACT_APP_SPAWN_AMOUNT); i++){ //Spawn 50 cubes
-        const edges = new THREE.EdgesGeometry( geometry );
-        const newCube = new THREE.LineSegments( edges, new THREE.LineBasicMaterial( { color: difficultyColors[difficulty.current] } ) );
-        //const newCube = new THREE.Mesh(geometry, material)
-        newCube.position.y = player.position.y + parseInt(process.env.REACT_APP_SPAWN_DISTANCE) + Math.floor(Math.random()*30) //Add variance to forward distance from player
-        newCube.position.x = Math.floor((Math.random()*parseInt(process.env.REACT_APP_SPAWN_RANGE))*(Math.round(Math.random()) ? 1 : -1))+player.position.x //Add variance to side distance from player
-        scene.add(newCube)
-        collidableMeshList.push(newCube) //Add to list of cubes to check for collisions
+      else{
+        spawn++
       }
-      spawn = 0
-    }
-    else{
-      spawn++
+      if(scoreRef.current == 1000){
+        difficulty.current = 1
+        for(let i = 0; i < collidableMeshList.length; i++){
+          collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
+        }
+        playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
+        spawnRate = Math.ceil(spawnRate*0.8)
+      }
+      if(scoreRef.current == 2000){
+        difficulty.current = 2
+        for(let i = 0; i < collidableMeshList.length; i++){
+          collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
+        }
+        playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
+        spawnRate = Math.ceil(spawnRate*0.8)
+      }
+      if(scoreRef.current == 3000){
+        difficulty.current = 3
+        for(let i = 0; i < collidableMeshList.length; i++){
+          collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
+        }
+        playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
+        spawnRate = Math.ceil(spawnRate*0.8)
+      }
+      if(scoreRef.current == 4000){
+        difficulty.current = 4
+        for(let i = 0; i < collidableMeshList.length; i++){
+          collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
+        }
+        playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
+        spawnRate = Math.ceil(spawnRate*0.8)
+      }
+      delta = delta % interval;
     }
     if(!gameOver.current){
-      requestAnimationFrame( animate );
-    }
-    if(scoreRef.current == 1000){
-      difficulty.current = 1
-      for(let i = 0; i < collidableMeshList.length; i++){
-        collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
+        requestAnimationFrame( animate );
       }
-      playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
-      spawnRate = Math.ceil(spawnRate*0.8)
-    }
-    if(scoreRef.current == 2000){
-      difficulty.current = 2
-      for(let i = 0; i < collidableMeshList.length; i++){
-        collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
-      }
-      playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
-      spawnRate = Math.ceil(spawnRate*0.8)
-    }
-    if(scoreRef.current == 3000){
-      difficulty.current = 3
-      for(let i = 0; i < collidableMeshList.length; i++){
-        collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
-      }
-      playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
-      spawnRate = Math.ceil(spawnRate*0.8)
-    }
-    if(scoreRef.current == 4000){
-      difficulty.current = 4
-      for(let i = 0; i < collidableMeshList.length; i++){
-        collidableMeshList[i].material.color = new THREE.Color( difficultyColors[difficulty.current] )
-      }
-      playerSpeed += parseFloat(process.env.REACT_APP_SPEED_INCREASE)
-      spawnRate = Math.ceil(spawnRate*0.8)
-    }
+    
     
     
   }
