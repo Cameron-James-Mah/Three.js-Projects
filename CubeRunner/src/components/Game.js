@@ -226,7 +226,7 @@ function App() {
     playerSpeed = parseFloat(process.env.REACT_APP_PLAYER_SPEED)
     playerTurnSpeed = parseFloat(process.env.REACT_APP_PLAYER_TURN_SPEED)
     spawnRate = parseInt(process.env.REACT_APP_CUBE_SPAWN_RATE)
-    bgmAudio.play()
+    
     animate()
   },[])
   return (
