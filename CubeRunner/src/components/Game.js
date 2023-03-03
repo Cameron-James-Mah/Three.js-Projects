@@ -66,36 +66,11 @@ function App() {
   const gameOver = useRef(false)
   const bgmAudio = new Audio(bgm)
   const difficulty = useRef(0)
+  const paused = useRef(false)
+  const [pausedText, setPausedText] = useState("")
   
   bgmAudio.volume = 0.1
 
-  document.addEventListener("keydown", movePlayer, false);
-  document.addEventListener("keyup", stopPlayer, false);
-
-  function movePlayer(event){
-  let keyCode = event.which
-    if(keyCode == 39){//arrow right
-      //player.position.x += playerTurnSpeed
-      //camera.position.x += playerTurnSpeed
-      rightInput = true
-    }
-    else if(keyCode == 37){//arrow left
-      //player.position.x -= playerTurnSpeed
-      //camera.position.x -= playerTurnSpeed
-      leftInput = true
-    }
-    
-  }
-
-  function stopPlayer(event){
-    let keyCode = event.which
-    if(keyCode == 39){//arrow right
-      rightInput = false
-    }
-    else if(keyCode == 37){//arrow left
-      leftInput = false
-    }
-  }
 
   function checkCollision(){ //detect player mesh collision with cube collisions
       for (let vertexIndex = 0; vertexIndex < player.geometry.attributes.position.array.length; vertexIndex++){ //Check collision with list of cube meshes
@@ -134,7 +109,7 @@ function App() {
 
   function animate(){
     delta += clock.getDelta()
-    if(delta > interval){
+    if(delta > interval && !paused.current){
       setScore(score => score + 1)
       scoreRef.current++
       renderer.render( scene, camera );
@@ -226,13 +201,59 @@ function App() {
     playerSpeed = parseFloat(process.env.REACT_APP_PLAYER_SPEED)
     playerTurnSpeed = parseFloat(process.env.REACT_APP_PLAYER_TURN_SPEED)
     spawnRate = parseInt(process.env.REACT_APP_CUBE_SPAWN_RATE)
-    
     animate()
+
+    document.addEventListener("keydown", movePlayer);
+    document.addEventListener("keyup", stopPlayer);
+
+    function movePlayer(event){
+      let keyCode = event.which
+        if(keyCode == 39){//arrow right
+          //player.position.x += playerTurnSpeed
+          //camera.position.x += playerTurnSpeed
+          rightInput = true
+        }
+        else if(keyCode == 37){//arrow left
+          //player.position.x -= playerTurnSpeed
+          //camera.position.x -= playerTurnSpeed
+          leftInput = true
+        }
+        else if(keyCode == 32){//pause
+          if(paused.current){
+            paused.current = false
+            setPausedText("")
+          }
+          else{
+            paused.current = true
+            setPausedText("PAUSED")
+          }
+        }
+    }
+
+    function stopPlayer(event){
+        let keyCode = event.which
+        if(keyCode == 39){//arrow right
+          rightInput = false
+        }
+        else if(keyCode == 37){//arrow left
+          leftInput = false
+        }
+    }
+
   },[])
   return (
     <>
     <div id = "info">
       <p>Score: {score}</p>
+    </div>
+    <div id = "controls">
+      <p>Controls</p>
+      <p>Left: Left arrow key</p>
+      <p>Right: Right arrow key</p>
+      <p>Pause: Space bar</p>
+    </div>
+    <div id = "paused">
+      <p>{pausedText}</p>
     </div>
     <Dialog
         open={gameOver.current}
@@ -251,6 +272,7 @@ function App() {
           </Button>
         </DialogActions>
       </Dialog>
+
     </>
   );
 }
