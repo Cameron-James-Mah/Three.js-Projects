@@ -1,16 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import Game from './components/Game';
 import reportWebVitals from './reportWebVitals';
+import { HashRouter} from "react-router-dom";
+
 import './index.css'
-import { HashRouter, Routes, Route } from "react-router-dom";
+import App from './App'
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <HashRouter>
-    <Routes>
-      <Route path ='/' element = {<Game />}></Route>
-    </Routes>
+    <App />
   </HashRouter>
 );
 
