@@ -1,0 +1,27 @@
+#Title {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5rem;
+    text-align: center;
+    z-index: 100;
+    display: block;
+    justify-content: center;
+    color: white
+}
+
+#Play {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5rem;
+    text-align: center;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    color: white;
+}
+
+

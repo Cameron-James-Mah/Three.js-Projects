@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from 'three';
 import "./Game.css"
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
-import bgm from '../media/CubeRunnerMusic.mp3'
+import bgm from '../media/CubeRunnerMusicLower.mp3'
 
 
 let playerSpeed = 0.6
@@ -11,15 +11,7 @@ let spawnRate = 70
 const playerSize = 0.6
 let rotationSpeed = parseFloat(process.env.REACT_APP_CAMERA_ROTATION_SPEED)
 
-const scene = new THREE.Scene();
-
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-camera.position.set(0, -80, 5);
-camera.lookAt(0, 0, 0);
-const renderer = new THREE.WebGLRenderer();
-//renderer.setClearColor( 0xffffff );
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
+//const scene = new THREE.Scene();
 
 const geometry = new THREE.BoxGeometry( 3, 3, 3 );
 const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
@@ -42,8 +34,7 @@ const playerGeometry = new THREE.ShapeGeometry(shape);
 const player = new THREE.Mesh( playerGeometry, playerMaterial );
 
 
-player.position.set(0, -73, 0)
-scene.add(player)
+
 let spawn = 0 //counter for knowing when to spawn next gen of cubes, incremented every game loop
 
 
@@ -60,7 +51,7 @@ let delta = 0
 let interval = 1/60 //60 fps
 
 
-function App() {
+const Game = ({scene, renderer, camera}) => {
   const [score, setScore] = useState(0)
   const scoreRef = useRef(0)
   const gameOver = useRef(false)
@@ -198,9 +189,14 @@ function App() {
     
   }
   useEffect(()=>{
+    player.position.set(0, -73, 0)
+    scene.add(player)
+    camera.position.set(0, -80, 5);
+    camera.lookAt(0, 0, 0);
     playerSpeed = parseFloat(process.env.REACT_APP_PLAYER_SPEED)
     playerTurnSpeed = parseFloat(process.env.REACT_APP_PLAYER_TURN_SPEED)
     spawnRate = parseInt(process.env.REACT_APP_CUBE_SPAWN_RATE)
+    bgmAudio.play()
     animate()
 
     document.addEventListener("keydown", movePlayer);
@@ -277,4 +273,4 @@ function App() {
   );
 }
 
-export default App;
+export default Game;
