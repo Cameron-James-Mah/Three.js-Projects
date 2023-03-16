@@ -1,19 +1,13 @@
 import { isVisible } from '@testing-library/user-event/dist/utils';
 import { useEffect } from 'react';
 import * as THREE from 'three';
-import { Color, Vector2, Vector3 } from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import grass1 from '../sprites/grass1.png'
 import road1 from '../sprites/road1.png'
 import playerRifle from '../sprites/playerRifle0.png'
-import skeletonSheet from '../sprites/skeleton_spritesheet.png'
-import bulletSheet from '../sprites/bulletSheet.png'
+import playerShotgun from '../sprites/playerShotgun0.png'
+import {Enemy, turret, muzzleFlash, bullet} from '../entities.js'
+import global from '../globals.js'
 
-
-
-
-
-const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
@@ -29,151 +23,20 @@ const planeMesh = new THREE.Mesh(
 )
 planeMesh.rotateX(-Math.PI/2)
 planeMesh.position.set(19.75, 0.01, 19.75)
-scene.add(planeMesh)
+global.scene.add(planeMesh)
 
 
 const Game = () =>{
-    let enemyList = []
-    let turretList = []
-    const interval = 1/60
+    const interval = 1/60 //fps
     let delta = 0
     let clock = new THREE.Clock()
-    let v1 = new THREE.Vector2();
-    let v2 = new THREE.Vector3();
-    let buyTurret = false
-    let turretSelection = playerRifle
+    let buyTurret = false //If any turret is currently selected from shop
+    let turretSelection = playerRifle //Current turret selection
 
-    class Enemy{
-        health;
-        x; 
-        y;
-        map;
-        material;
-        sprite;
-        loader;
-        speed = 0.03;
-
-        //Animation variables
-        currentTile = 0
-        offsetX;
-        tilesHoriz = 17
-        constructor(level, x, z){
-            this.health = level*2
-            this.loader = new THREE.TextureLoader()
-            this.map = this.loader.load( skeletonSheet );
-            this.map.repeat.set(1/this.tilesHoriz, 1)
-            this.material = new THREE.SpriteMaterial( { map: this.map } );
-            this.sprite = new THREE.Sprite( this.material );
-            this.sprite.position.set(x, 0.01, z)
-            this.sprite.scale.set(0.7, 0.7, 0.7)
-            scene.add(this.sprite)
-        }
-        getPosition(){
-            return this.sprite.position;
-        }
-        animate(){
-                this.offsetX = (this.currentTile%this.tilesHoriz)/this.tilesHoriz
-                this.map.offset.x = this.offsetX
-                this.currentTile++
-                if(this.currentTile == this.tilesHoriz){
-                    this.currentTile = 0
-                }
-                if(this.sprite.position.z == 19 && this.sprite.position.x < 17.5){//line1
-                    this.sprite.position.x += this.speed
-                }
-                else if(this.sprite.position.x >= 17.5 && this.sprite.position.x <= 18 && this.sprite.position.z == 19){
-                    this.sprite.material.rotation -= Math.PI/2
-                    this.sprite.position.z += this.speed
-                    this.sprite.position.x = 17.5
-                }
-                else if(this.sprite.position.x == 17.5 && this.sprite.position.z < 21){//line2
-                    this.sprite.position.z += this.speed
-                }
-                else if(this.sprite.position.z >= 21 && this.sprite.position.x == 17.5){
-                    this.sprite.material.rotation += Math.PI/2
-                    this.sprite.position.x += this.speed
-                    this.sprite.position.z = 21
-                }   
-                else if(this.sprite.position.z == 21 && this.sprite.position.x < 20){//line3
-                    this.sprite.position.x += this.speed
-                }
-                else if(this.sprite.position.x >= 20 && this.sprite.position.z == 21){
-                    this.sprite.material.rotation += Math.PI/2
-                    this.sprite.position.z -= this.speed
-                    this.sprite.position.x = 20
-                }
-                else if(this.sprite.position.x == 20 && this.sprite.position.z <= 21 && this.sprite.position.z > 16.5){//line4
-                    this.sprite.position.z -= this.speed
-                }
-                else if(this.sprite.position.z <= 16.5 && this.sprite.position.x == 20){
-                    this.sprite.material.rotation -= Math.PI/2
-                    this.sprite.position.x += this.speed
-                    this.sprite.position.z = 16.5
-                }
-                else if(this.sprite.position.z == 16.5 && this.sprite.position.x < 21){//line5
-                    this.sprite.position.x += this.speed
-                }
-                else if(this.sprite.position.z == 16.5 && this.sprite.position.x >= 21){
-                    this.sprite.material.rotation -= Math.PI/2
-                    this.sprite.position.z += this.speed
-                    this.sprite.position.x = 21
-                }
-                else if(this.sprite.position.x == 21 && this.sprite.position.z < 19.5){//line6
-                    this.sprite.position.z += this.speed
-                }
-                else if(this.sprite.position.x == 21){
-                    this.sprite.material.rotation += Math.PI/2
-                    this.sprite.position.x += this.speed
-                    this.sprite.position.z = 19.5
-                }
-                else if(this.sprite.position.z == 19.5){
-                    this.sprite.position.x += this.speed
-                }
-                if(this.sprite.position.x >= 24.5){
-                    scene.remove(this.sprite)
-                    return true
-                }
-            
-            return false
-            
-        }
-    }
-    class turret{
-        fireRate;
-        damage;
-        map;
-        material;
-        sprite;
-        range;
-        constructor(type, x, z){
-            if(type == "rifle"){
-                this.range = 3.5
-                this.fireRate = 0.25
-                this.damage = 1
-                this.map = new THREE.TextureLoader().load( playerRifle );
-                this.material = new THREE.SpriteMaterial( { map: this.map } );
-                this.sprite = new THREE.Sprite( this.material );
-                this.sprite.position.set(x, 0.01, z)
-                this.sprite.scale.set(0.7, 0.7, 0.7)
-                scene.add(this.sprite)
-            }
-        }
-        animate(){
-            for(let i = enemyList.length-1; i >= 0; i--){
-                if((Math.abs(this.sprite.position.x-enemyList[i].sprite.position.x)+Math.abs(this.sprite.position.z-enemyList[i].sprite.position.z)) <= this.range){
-                    v1 = new THREE.Vector2(this.sprite.position.z, this.sprite.position.x)
-                    v2 = new THREE.Vector2(enemyList[i].sprite.position.z, enemyList[i].sprite.position.x)
-                    v1.sub(v2)
-                    this.sprite.material.rotation = v1.angle()+Math.PI/2
-                    break
-                }
-            }
-            
-            
-        }
-    }
-    const gridSize = 20, tileSize = 0.5, tileOffset = 0.25 //Tilemap dimensions
+    
+    const gridSize = 20, tileSize = 0.5, tileOffset = 0.25 //Tilemap dimensions  
     const mapOffset = 15 //Moved my map to the right so i can deal with only positive numbers for positioning
+    //Grid representation of map, used to build tilemap
     //0 = grass, 1 = road
     const mapGrid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -199,21 +62,19 @@ const Game = () =>{
     
     
     const enemySpeed = 1
-    let helperGrid = new THREE.GridHelper(10, gridSize,"red", "red");
+    let helperGrid = new THREE.GridHelper(10, gridSize,"red", "red");//helpergrid just for development purposes
     helperGrid.position.set(19.75, 0.01, 19.75)
-    scene.add(helperGrid)
+    global.scene.add(helperGrid)
     camera.position.set(19.75, 7, 19.75)
     camera.lookAt(new THREE.Vector3(19.75, 0, 19.75))
     
     //const controls = new OrbitControls( camera, renderer.domElement );
     
 
-    const tileGeo = new THREE.PlaneGeometry(tileSize, tileSize)
+    const tileGeo = new THREE.PlaneGeometry(tileSize, tileSize) //tilemap tile geometry
     const grass1Mat = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(grass1) })
     const road1Mat = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(road1) })
-    //const playerRifle = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(road1) })
-    let newTurret = new turret("rifle", 19.5, 20)
-    turretList.push(newTurret)
+    
     
     /*
     const newTile = new THREE.Mesh(
@@ -222,13 +83,9 @@ const Game = () =>{
     )
     newTile.rotateX(-Math.PI/2)
     newTile.position.set(15, 0, 15)
-    scene.add(newTile)*/
+    global.scene.add(newTile)*/
 
-
-    
-    
-
-    function createMap(){
+    function createMap(){//Creating tilemap
         for(let i = 0; i < gridSize; i++){
             for(let j = 0; j < gridSize; j++){
                 if(mapGrid[i][j] == 0){
@@ -238,7 +95,7 @@ const Game = () =>{
                     )
                     newTile.rotateX(-Math.PI/2)
                     newTile.position.set((j*0.5)+mapOffset, 0, (i*0.5)+mapOffset)
-                    scene.add(newTile)
+                    global.scene.add(newTile)
                 }
                 else if(mapGrid[i][j] == 1){
                     const newTile = new THREE.Mesh(
@@ -247,27 +104,29 @@ const Game = () =>{
                     )
                     newTile.rotateX(-Math.PI/2)
                     newTile.position.set((j*0.5)+mapOffset, 0, (i*0.5)+mapOffset)
-                    scene.add(newTile)
+                    global.scene.add(newTile)
                 }
             }
         }
     }
+    //sprite for grid placement
     const buyMap = new THREE.TextureLoader().load( playerRifle );
     const buyMaterial = new THREE.SpriteMaterial( { map: buyMap } );
-    const buySprite = new THREE.Sprite( buyMaterial );
+    const buySprite = new THREE.Sprite( buyMaterial ); 
     buySprite.position.set(0, 0.01, 0)
     buySprite.scale.set(0.7, 0.7, 0.7)
-    scene.add( buySprite );
+    global.scene.add( buySprite );
+
     const raycaster = new THREE.Raycaster();
+    let pointer = new THREE.Vector2()//Mouse pointer vector
     window.addEventListener( 'mousemove', onPointerMove );
-    function onPointerMove( event ) {
+    function onPointerMove( event ) {//Used for placing new turrets
         if(buyTurret){
             pointer.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1
             pointer.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1
             // Perform raycast
             raycaster.setFromCamera( pointer, camera );
 
-            // See if the ray from the camera into the world hits our mesh
             const intersects = raycaster.intersectObject( planeMesh );
 
             // Check if an intersection took place
@@ -282,7 +141,7 @@ const Game = () =>{
         
 
     }
-    let pointer = new THREE.Vector2()
+    
     window.addEventListener( 'click', onPointerClick );
     function onPointerClick(event){
         pointer.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1
@@ -290,54 +149,105 @@ const Game = () =>{
         // Perform raycast
         raycaster.setFromCamera( pointer, camera );
         const intersectGrid = raycaster.intersectObject( planeMesh );
-        if(buyTurret && intersectGrid.length > 0 && turretSelection == playerRifle){
-            turretList.push(new turret("rifle", buySprite.position.x, buySprite.position.z))
+        if(buyTurret && intersectGrid.length > 0 && turretSelection == playerRifle){ //Place new rifle turret
+            global.turretList.push(new turret("rifle", buySprite.position.x, buySprite.position.z))
         }
-
-        // See if the ray from the camera into the world hits our mesh
+        else if(buyTurret && intersectGrid.length > 0 && turretSelection == playerShotgun){
+            global.turretList.push(new turret("shotgun", buySprite.position.x, buySprite.position.z))
+        }
         const intersectsRifle = raycaster.intersectObject( rifleSprite );
-
-        // Check if an intersection took place
-        if ( intersectsRifle.length > 0 ) {
+        if ( intersectsRifle.length > 0 ) { //If clicked on buy rifle turret sprite
             buyTurret = true
             turretSelection = playerRifle
+            buySprite.material = rifleMaterial
         }
+        const intersectsShotgun = raycaster.intersectObject( shotgunSprite );
+        if ( intersectsShotgun.length > 0 ) { //If clicked on buy rifle turret sprite
+            buyTurret = true
+            turretSelection = playerShotgun
+            buySprite.material = shotgunMaterial
+        }
+
     }
+    //UI sprites for purchase
     const map = new THREE.TextureLoader().load( playerRifle );
-    const material = new THREE.SpriteMaterial( { map: map } );
-    const rifleSprite = new THREE.Sprite( material );
+    const rifleMaterial = new THREE.SpriteMaterial( { map: map } );
+    const rifleSprite = new THREE.Sprite( rifleMaterial );
     rifleSprite.position.set(27, 0.01, 16)
-    scene.add( rifleSprite );
+    global.scene.add( rifleSprite );
+
+    const map2 = new THREE.TextureLoader().load( playerShotgun );
+    const shotgunMaterial = new THREE.SpriteMaterial( { map: map2 } );
+    const shotgunSprite = new THREE.Sprite( shotgunMaterial );
+    shotgunSprite.position.set(27, 0.01, 20)
+    global.scene.add( shotgunSprite );
 
 
     document.addEventListener("keydown", keyclick);
     function keyclick(e){
         let keyCode = e.which
-        if(keyCode == 32){
+        if(keyCode == 32){ //SPACE button, For development purposes, spawn basic enemy
             let newEnemy = new Enemy(1, 15, 19)
-            enemyList.push(newEnemy)
+            global.enemyList.push(newEnemy)
         }
-        else if(keyCode == 27){
+        else if(keyCode == 27){ //ESC button, cancel turret selection
             buyTurret = false
             buySprite.position.set(0, 0.01, 0)
         }
     }
 
+    function checkCollision(sprite1, sprite2){
+        //Check if sprites collide...just going to check using distance instead of raycasting for now
+        if((Math.abs(sprite1.position.x-sprite2.position.x)+Math.abs(sprite1.position.z-sprite2.position.z)) <= 0.5){
+            return true
+        }
+        return false
+    }
 
     function animate(){
         delta += clock.getDelta()
-        if(delta > interval){
+        if(delta > interval){//limit fps
             let updatedEnemyList = []
-            for(let i = 0; i < enemyList.length; i++){
-                if(!enemyList[i].animate()){ //animate returns true if removed from scene
-                    updatedEnemyList.push(enemyList[i])
+            for(let enemy of global.enemyList){ //Loop through enemy list and do animations/actions
+                if(!enemy.animate()){ //animate returns true if removed from global.scene
+                    updatedEnemyList.push(enemy)
                 }
             }
-            enemyList = updatedEnemyList
-            for(let i = 0; i < turretList.length; i++){
-                turretList[i].animate()
+            global.enemyList = updatedEnemyList //Update list to not include enemies removed from global.scene(made it to end of map/killed by turret)
+            for(let turret of global.turretList){ //Loop through turret list and do animations/actions
+                turret.animate()
             }
-            renderer.render( scene, camera );
+            let updatedBulletList = []
+            for(let bullet of global.bulletList){ //Loop through bullet list and do animations/actions
+                if(!bullet.animate()){ //animate returns true if removed from global.scene
+                    updatedBulletList.push(bullet)
+                }
+            }
+            global.bulletList = updatedBulletList
+            let updatedBulletList2 = []
+            for(let bullet of global.bulletList){ //Check for bullet collisions with enemies
+                let bulletAlive = true
+                for(let j = 0; j < global.enemyList.length; j++){
+                    if(checkCollision(bullet.sprite, global.enemyList[j].sprite)){//If there was a collision between current bullet and enemy
+                        if(global.enemyList[j].takeDamage(bullet.damage)){//returns true if dead
+                            global.enemyList.splice(j, 1)
+                            j--;
+                        }
+                        if(bullet.hit()){//return true if bullet out of piercing
+                            bulletAlive = false
+                        }
+                        break
+                    }
+                }
+                if(bulletAlive){
+                    updatedBulletList2.push(bullet)
+                }
+            }
+            global.bulletList = updatedBulletList2
+            for(let extra of global.extras){ //extra animations ex(muzzleflash)
+                extra.animate()
+            }
+            renderer.render( global.scene, camera );
         }
         
         requestAnimationFrame( animate );
