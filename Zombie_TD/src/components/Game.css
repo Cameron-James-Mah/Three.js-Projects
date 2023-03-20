@@ -1,0 +1,52 @@
+.selectionAttributes {
+  text-align: left;
+  color: black;
+  font-family: sans-serif;
+  white-space: pre-line
+}
+
+.selectionTitle{
+  text-align: middle;
+  color: black;
+  font-family: sans-serif;
+  white-space: pre-line;
+  font-size: 22px;
+}
+
+.selectionDescription{
+  text-align: left;
+  color: black;
+  font-family: sans-serif;
+  white-space: pre-line
+}
+
+.round{
+  text-align: left;
+  color: black;
+  font-size: 30px;
+  font-family: sans-serif;
+  white-space: pre-line
+}
+
+.turretCost{
+    text-align: left;
+    color: yellow;
+    font-family: sans-serif;
+    white-space: pre-line
+}
+
+.currentGold{
+    text-align: left;
+    color: yellow;
+    font-size: 25px;
+    font-family: sans-serif;
+    white-space: pre-line
+}
+
+.currentHealth {
+  text-align: left;
+  color: red;
+  font-size: 25px;
+  font-family: sans-serif;
+  white-space: pre-line
+}
