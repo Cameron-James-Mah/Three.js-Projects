@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import playerRifle from './sprites/playerRifle0.png'
 import playerShotgun from './sprites/playerShotgun0.png'
+import playerHandgun from './sprites/playerHandgun0.png'
 import skeletonSheet from './sprites/skeleton_spritesheet.png'
 import bulletSheet from './sprites/bulletSheet.png'
 import muzzleFlashSheet from './sprites/muzzleFlashesSheet.png'
@@ -95,6 +96,8 @@ export class Enemy{
                 this.sprite.position.x += this.speed
             }
             if(this.sprite.position.x >= 24.5){
+                this.sprite.geometry.dispose()
+                this.sprite.material.dispose()
                 global.scene.remove(this.sprite)
                 return true
             }
@@ -104,6 +107,8 @@ export class Enemy{
     takeDamage(damage){
         this.health -= damage
         if(this.health <= 0){
+            this.sprite.geometry.dispose()
+            this.sprite.material.dispose()
             global.scene.remove(this.sprite)
             return true
         }
@@ -122,11 +127,15 @@ export class turret{
     piercing;
     type;
     shotgunSpray = 0.5
+    rangeIndicator;
+    damageLevel = 0
+    rangeLevel = 0
+    fireRateLevel = 0
     constructor(type, x, z){
         if(type == "rifle"){ //Rifle type turret
             this.type = type
             this.piercing = 1
-            this.range = 4
+            this.range = 3.5
             this.fireRate = 0.4
             this.damage = 1
             this.fireDelay = 60
@@ -140,7 +149,7 @@ export class turret{
         else if(type == 'shotgun'){
             this.type = type
             this.piercing = 1
-            this.range = 3.5
+            this.range = 3
             this.fireRate = 0.25
             this.damage = 1
             this.fireDelay = 60
@@ -150,7 +159,28 @@ export class turret{
             this.sprite.position.set(x, 0.01, z)
             this.sprite.scale.set(0.7, 0.7, 0.7)
             global.scene.add(this.sprite)
-        }   
+        }
+        else if(type == 'handgun'){
+            this.type = type
+            this.piercing = 1
+            this.range = 2.5
+            this.fireRate = 0.25
+            this.damage = 0.5
+            this.fireDelay = 60
+            this.map = new THREE.TextureLoader().load( playerHandgun );
+            this.material = new THREE.SpriteMaterial( { map: this.map } );
+            this.sprite = new THREE.Sprite( this.material );
+            this.sprite.position.set(x, 0.01, z)
+            this.sprite.scale.set(0.7, 0.7, 0.7)
+            global.scene.add(this.sprite)
+        }
+        const rangeGeometry = new THREE.CircleGeometry( this.range, 32 );
+        const rangeMaterial = new THREE.MeshBasicMaterial( { color: "white" } );
+        this.rangeIndicator = new THREE.Mesh( rangeGeometry, rangeMaterial );
+        this.rangeIndicator.position.set(x, 0.02, z)
+        this.rangeIndicator.material.transparent = true
+        this.rangeIndicator.rotateX(-Math.PI/2)
+        this.rangeIndicator.material.opacity = 0.4
     }
     animate(){ 
         for(let i = global.enemyList.length-1; i >= 0; i--){ //Iterate through enemy list, shoot at the first enemy found in range
@@ -187,14 +217,33 @@ export class turret{
                         v1.sub(v2)
                         global.bulletList.push(new bullet(this.type, this.damage, this.sprite.position.x, this.sprite.position.z, v1.angle(), norm3, this.piercing))
                     }
+                    else if(this.type == "handgun"){
+                        global.bulletList.push(new bullet(this.type, this.damage, this.sprite.position.x, this.sprite.position.z, v1.angle(), norm, this.piercing))
+                    }
                     this.fireTime = 0
                     global.extras.push(new muzzleFlash(this.type, this.sprite.position.x, this.sprite.position.z, v1.angle(), norm))
                 }
                 break
             }
         }
-        
-        
+    }
+    showRange(){//Range indicator to show attack range of turret
+        global.scene.add( this.rangeIndicator );
+    }
+    hideRange(){
+        global.scene.remove( this.rangeIndicator );
+    }
+    getSprite(){
+        return this.sprite
+    }
+    upgradeDamage(){
+        this.damage += 0.5
+    }
+    upgradeRange(){
+        this.range += 0.5
+    }
+    upgradeFireRate(){
+        this.fireRate += 0.2
     }
 }
 export class bullet{
@@ -225,6 +274,12 @@ export class bullet{
             this.material = new THREE.SpriteMaterial( { map: this.map } );
             this.sprite = new THREE.Sprite( this.material );
         }
+        else if(this.type == "handgun"){
+            this.map = this.loader.load( bulletSheet );
+            this.map.repeat.set(1, 1/2) 
+            this.material = new THREE.SpriteMaterial( { map: this.map } );
+            this.sprite = new THREE.Sprite( this.material );
+        }
         this.sprite.position.set(x, 0.05, z)
         this.sprite.material.rotation = angle
         this.sprite.translateOnAxis(norm, 0.1)
@@ -233,6 +288,8 @@ export class bullet{
     }
     animate(){
         if(this.sprite.position.x < 15 || this.sprite.position.x > 24.5 || this.sprite.position.z < 15 || this.sprite.position.z > 24.5){
+            this.sprite.geometry.dispose()
+            this.sprite.material.dispose()
             global.scene.remove(this.sprite)
             return true
         }
@@ -243,6 +300,8 @@ export class bullet{
     hit(){ //Bullet collided with enemy, see if piercing leftover
         this.piercing--
         if(this.piercing <= 0){
+            this.sprite.geometry.dispose()
+            this.sprite.material.dispose()
             global.scene.remove(this.sprite)
             return true
         }
@@ -260,7 +319,7 @@ export class muzzleFlash{
     constructor(type, x, z, angle, norm){
         this.loader = new THREE.TextureLoader()
         if(type == "rifle"){//If muzzle flash from rifle shot
-            this.yTile = 1
+            this.yTile = 4
             this.map = this.loader.load( muzzleFlashSheet );
             this.map.repeat.set(1/this.tilesHoriz, 1/this.tilesVert)
             this.material = new THREE.SpriteMaterial( { map: this.map } );
@@ -269,6 +328,14 @@ export class muzzleFlash{
         }
         else if(type == "shotgun"){//If muzzle flash from shotgun shot
             this.yTile = 1
+            this.map = this.loader.load( muzzleFlashSheet );
+            this.map.repeat.set(1/this.tilesHoriz, 1/this.tilesVert)
+            this.material = new THREE.SpriteMaterial( { map: this.map } );
+            this.sprite = new THREE.Sprite( this.material );
+            this.norm = norm
+        }
+        else if(type == "handgun"){//If muzzle flash from shotgun shot
+            this.yTile = 2
             this.map = this.loader.load( muzzleFlashSheet );
             this.map.repeat.set(1/this.tilesHoriz, 1/this.tilesVert)
             this.material = new THREE.SpriteMaterial( { map: this.map } );
@@ -284,6 +351,8 @@ export class muzzleFlash{
     }
     animate(){
         if(this.xTile >= this.tilesHoriz){
+            this.sprite.geometry.dispose()
+            this.sprite.material.dispose()
             global.scene.remove(this.sprite)
         }
         this.offsetX = (this.xTile%this.tilesHoriz)/this.yTile/this.tilesHoriz
