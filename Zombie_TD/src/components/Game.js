@@ -1,6 +1,7 @@
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import * as THREE from 'three';
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import grass1 from '../sprites/grass1.png'
 import road1 from '../sprites/road1.png'
 import playerRifle from '../sprites/playerRifle0.png'
@@ -53,7 +54,7 @@ const Game = () =>{
     let fireRateInfo = 0
 
     //Turret costs
-    const shotgunCost = 20
+    const shotgunCost = 30
     const handgunCost = 5
     const rifleCost = 15
 
@@ -61,8 +62,11 @@ const Game = () =>{
     let currentRound = 0 
     let roundInProgress = false
 
+    const [gameOver, setGameOver] = useState(false) //Ran out of health
+    const [victory, setVictory] = useState(false) //Completed all rounds
+
     let roundSpawns = [
-        [{type: "skeleton", delay: 100}, {type: "skeleton", delay: 100}, {type: "skeleton", delay: 110}, {type: "skeleton", delay: 110}, {type: "skeleton", delay: 110}],
+        [{type: "skeleton", delay: 120}, {type: "skeleton", delay: 120}, {type: "skeleton", delay: 120}, {type: "skeleton", delay: 120}, {type: "skeleton", delay: 120}],
 
         [{type: "skeleton", delay: 60}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 60}],
 
@@ -456,9 +460,9 @@ const Game = () =>{
     //Shotgun
     let atr1 = document.createElement("div");
     atr1.className = 'selectionAttributes'
-    atr1.textContent = "Damage: 1\n"
-    atr1.textContent += "Range: 3\n"
-    atr1.textContent += "Fire rate: 0.20"
+    atr1.textContent = "Damage: 1.0\n"
+    atr1.textContent += "Range: 3.0\n"
+    atr1.textContent += "Fire rate: 0.18"
     let attributeObj1 = new CSS2DObject(atr1);
     attributeObj1.position.set(27, 0.01, 21)
     global.scene.add(attributeObj1)
@@ -492,9 +496,9 @@ const Game = () =>{
     //Handgun
     let atr2 = document.createElement("div");
     atr2.className = 'selectionAttributes'
-    atr2.textContent = "Damage: 1\n"
+    atr2.textContent = "Damage: 1.0\n"
     atr2.textContent += "Range: 2.5\n"
-    atr2.textContent += "Fire rate: 0.25"
+    atr2.textContent += "Fire rate: 0.30"
     let attributeObj2 = new CSS2DObject(atr2);
     attributeObj2.position.set(27, 0.01, 23.5)
     global.scene.add(attributeObj2)
@@ -529,7 +533,7 @@ const Game = () =>{
     //Rifle
     let atr3 = document.createElement("div");
     atr3.className = 'selectionAttributes'
-    atr3.textContent = "Damage: 1\n"
+    atr3.textContent = "Damage: 1.0\n"
     atr3.textContent += "Range: 3.5\n"
     atr3.textContent += "Fire rate: 0.55"
     let attributeObj3 = new CSS2DObject(atr3);
@@ -698,11 +702,12 @@ const Game = () =>{
     hideInfoUI()
 
     function tileAvailable(){ //Returns true if tile is available for turret placement(no existing turret in tile)
-        for(let turret in global.turretList){
-            if(turret.position == buySprite.position){
+        for(let turret of global.turretList){
+            if(turret.sprite.position.equals(buySprite.position)){
                 return false
             }
         }
+        
         return true
     }
 
@@ -714,9 +719,13 @@ const Game = () =>{
         return false
     }
 
+    function replay(){
+        document.location.reload()
+    }
+
     function animate(){
         delta += clock.getDelta()
-        if(delta > interval){//limit fps
+        if(delta > interval && health > 0 && currentRound < roundSpawns.length){//limit fps
             if(roundInProgress && spawnIndex < currentSpawn.length){ //Round in progress
                 if(currentSpawn[spawnIndex].delay <= 0){
                     global.enemyList.push(new Enemy(currentSpawn[spawnIndex].type,1, 15, 19))
@@ -729,10 +738,14 @@ const Game = () =>{
             if(roundInProgress && remainingEnemies == 0 && spawnIndex == currentSpawn.length){ //Round ended
                 spawnIndex = 0
                 currentRound++
+                if(currentRound >= roundSpawns.length){
+                    setVictory(true)
+                }
                 roundText.textContent = `Round ${currentRound}`
                 roundInProgress = false
                 startMesh.visible = true
                 startText.textContent = "Start Round"
+
             }
             let updatedEnemyList = []
             for(let enemy of global.enemyList){ //Loop through enemy list and do animations/actions
@@ -744,7 +757,7 @@ const Game = () =>{
                     currentHealthText.textContent = `Health: ${health}`
                     remainingEnemies--
                     if(health <= 0){ //NO REMAINING HEALTH GAMEOVER
-
+                        setGameOver(true)
                     }
                 }
             }
@@ -789,14 +802,45 @@ const Game = () =>{
             renderer.render( global.scene, camera );
             labelRenderer.render( global.scene, camera );
         }
+        if(health > 0 && currentRound < roundSpawns.length){
+            requestAnimationFrame( animate );
+        }
         
-        requestAnimationFrame( animate );
+        
     }
     useEffect(()=>{
         animate()
         createMap()
     },[])
-    
+    return(
+        <>
+        <Dialog
+        open={gameOver}
+      >
+        <DialogTitle id="responsive-dialog-title" textAlign={"center"}>
+          Gameover
+        </DialogTitle>
+        <DialogActions style={{justifyContent: "center"}}>
+          <Button onClick={replay}>
+            Replay
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={victory}
+      >
+        <DialogTitle id="responsive-dialog-title" textAlign={"center"}>
+          Victory
+        </DialogTitle>
+        <DialogActions style={{justifyContent: "center"}}>
+          <Button onClick={replay}>
+            Replay
+          </Button>
+        </DialogActions>
+      </Dialog>
+        </>
+    )
 }
 
 export default Game;
