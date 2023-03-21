@@ -28,7 +28,7 @@ export class Enemy{
     constructor(type,level, x, z){
         if(type == 'skeleton'){
             this.tilesHoriz = 17
-            this.health = level*2
+            this.health = level*3
             this.speed = 0.03
             this.loader = new THREE.TextureLoader()
             this.map = this.loader.load( skeletonSheet );
@@ -41,7 +41,7 @@ export class Enemy{
         }
         else if(type == 'zombie'){
             this.tilesHoriz = 32
-            this.health = level*2
+            this.health = level*4
             this.speed = 0.05
             this.loader = new THREE.TextureLoader()
             this.map = this.loader.load( zombieSheet );
@@ -171,7 +171,7 @@ export class turret{
             this.type = type
             this.piercing = 1
             this.range = 3
-            this.fireRate = 0.20
+            this.fireRate = 0.18
             this.damage = 1
             this.fireDelay = 60
             this.map = new THREE.TextureLoader().load( playerShotgun );
@@ -185,7 +185,7 @@ export class turret{
             this.type = type
             this.piercing = 1
             this.range = 2.5
-            this.fireRate = 0.25
+            this.fireRate = 0.30
             this.damage = 0.5
             this.fireDelay = 60
             this.map = new THREE.TextureLoader().load( playerHandgun );
