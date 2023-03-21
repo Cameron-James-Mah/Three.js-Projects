@@ -1,8 +1,6 @@
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { useEffect } from 'react';
 import * as THREE from 'three';
-
 import grass1 from '../sprites/grass1.png'
 import road1 from '../sprites/road1.png'
 import playerRifle from '../sprites/playerRifle0.png'
@@ -15,9 +13,6 @@ import upgrade from '../sprites/upgrade.png'
 import {Enemy, turret, muzzleFlash, bullet} from '../entities.js'
 import global from '../globals.js'
 import "./Game.css";
-
-
-
 
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 const renderer = new THREE.WebGLRenderer();
@@ -40,14 +35,16 @@ global.scene.add(planeMesh)
 
 
 const Game = () =>{
-    const interval = 1/60 //fps
-    let delta = 0
+    //fps
+    const interval = 1/60 
+    let delta = 0 
     let clock = new THREE.Clock()
+
     let buyTurret = false //If any turret is currently selected from shop
     let turretSelection = playerRifle //Current turret selection
     let selectedTurret; //Current selected turret object
     let buySpriteRange = 4 //Range of current selected buyTurret, radius of selected shop turret
-    let gold = 30
+    let gold = 15
     let health = 20 
 
     //Selected turret info
@@ -56,16 +53,35 @@ const Game = () =>{
     let fireRateInfo = 0
 
     //Turret costs
-    const shotgunCost = 15
+    const shotgunCost = 20
     const handgunCost = 5
-    const rifleCost = 20
+    const rifleCost = 15
 
     //Round info
     let currentRound = 0 
     let roundInProgress = false
-    
 
+    let roundSpawns = [
+        [{type: "skeleton", delay: 100}, {type: "skeleton", delay: 100}, {type: "skeleton", delay: 110}, {type: "skeleton", delay: 110}, {type: "skeleton", delay: 110}],
+
+        [{type: "skeleton", delay: 60}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 60}],
+
+        [{type: "skeleton", delay: 60}, {type: "skeleton", delay: 30}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 30}, {type: "skeleton", delay: 30}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 30}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 30}, {type: "skeleton", delay: 60}],
+
+        [{type: "skeleton", delay: 30}, {type: "zombie", delay: 60}, {type: "skeleton", delay: 30}, {type: "skeleton", delay: 60}, {type: "skeleton", delay: 60}, {type: "zombie", delay: 60}, {type: "zombie", delay: 30}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 30}, {type: "skeleton", delay: 60},{type: "skeleton", delay: 30}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 30}, {type: "skeleton", delay: 60}, {type: "zombie", delay: 60}], 
+
+        [{type: "skeleton", delay: 30}, {type: "zombie", delay: 30}, {type: "skeleton", delay: 30}, {type: "skeleton", delay: 50}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 60}, {type: "zombie", delay: 40}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 30}, {type: "skeleton", delay: 40},{type: "skeleton", delay: 30}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 30}, {type: "skeleton", delay: 60}, {type: "zombie", delay: 60}], 
+
+        [{type: "skeleton", delay: 20}, {type: "zombie", delay: 20}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 40}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 50}, {type: "zombie", delay: 40}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 30}, {type: "zombie", delay: 40},{type: "skeleton", delay: 30}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 30}, {type: "skeleton", delay: 20}, {type: "zombie", delay: 40}, {type: "skeleton", delay: 40}, {type: "skeleton", delay: 30}, {type: "skeleton", delay: 10}, {type: "zombie", delay: 30}, {type: "zombie", delay: 60}], 
+
+        [{type: "skeleton", delay: 10}, {type: "zombie", delay: 10}, {type: "skeleton", delay: 20}, {type: "zombie", delay: 30}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 50}, {type: "zombie", delay: 30}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 30}, {type: "zombie", delay: 40},{type: "zombie", delay: 30}, {type: "skeleton", delay: 30}, {type: "zombie", delay: 20}, {type: "skeleton", delay: 20}, {type: "zombie", delay: 40}, {type: "skeleton", delay: 40}, {type: "zombie", delay: 20}, {type: "skeleton", delay: 10}, {type: "zombie", delay: 30}, {type: "zombie", delay: 60}], 
+
+    ]
     
+    let currentSpawn = [] //Current round spawns
+    let spawnIndex = 0 //Current enemy spawn of current round
+    let remainingEnemies = 0 //Remaining enemies in round, helps to figure out when round is over
+
     const gridSize = 20, tileSize = 0.5, tileOffset = 0.25 //Tilemap dimensions  
     const mapOffset = 15 //Moved my map to the right so i can deal with only positive numbers for positioning
     //Grid representation of map, used to build tilemap
@@ -92,35 +108,21 @@ const Game = () =>{
                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]
     
-    
-    const enemySpeed = 1
+    /*
     let helperGrid = new THREE.GridHelper(10, gridSize,"red", "red");//helpergrid just for development purposes
     helperGrid.position.set(19.75, 0.01, 19.75)
-    global.scene.add(helperGrid)
+    global.scene.add(helperGrid)*/
     camera.position.set(23, 7, 19.75)
     camera.lookAt(new THREE.Vector3(23, 0, 19.75))
-    
-    //const controls = new OrbitControls( camera, renderer.domElement );
-    
 
     const tileGeo = new THREE.PlaneGeometry(tileSize, tileSize) //tilemap tile geometry
     const grass1Mat = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(grass1) })
     const road1Mat = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(road1) })
-    
-    
-    /*
-    const newTile = new THREE.Mesh(
-        tileGeo,
-        tileMat
-    )
-    newTile.rotateX(-Math.PI/2)
-    newTile.position.set(15, 0, 15)
-    global.scene.add(newTile)*/
 
     function createMap(){//Creating tilemap
         for(let i = 0; i < gridSize; i++){
             for(let j = 0; j < gridSize; j++){
-                if(mapGrid[i][j] == 0){
+                if(mapGrid[i][j] == 0){ //grass
                     const newTile = new THREE.Mesh(
                         tileGeo,
                         grass1Mat
@@ -129,7 +131,7 @@ const Game = () =>{
                     newTile.position.set((j*0.5)+mapOffset, 0, (i*0.5)+mapOffset)
                     global.scene.add(newTile)
                 }
-                else if(mapGrid[i][j] == 1){
+                else if(mapGrid[i][j] == 1){ //road
                     const newTile = new THREE.Mesh(
                         tileGeo,
                         road1Mat
@@ -196,18 +198,21 @@ const Game = () =>{
             global.turretList.push(new turret("rifle", buySprite.position.x, buySprite.position.z))
             gold -= rifleCost
             currentGoldText.textContent = `Gold: ${gold}`
+            clearSelection()
         }
         else if(buyTurret && intersectGrid.length > 0 && turretSelection == playerShotgun && tileAvailable() && gold >= shotgunCost){//Place new shotgun turret
             global.turretList.push(new turret("shotgun", buySprite.position.x, buySprite.position.z))
             gold -= shotgunCost
             currentGoldText.textContent = `Gold: ${gold}`
+            clearSelection()
         } 
         else if(buyTurret && intersectGrid.length > 0 && turretSelection == playerHandgun && tileAvailable() && gold >= handgunCost){//Place new handgun turret
             global.turretList.push(new turret("handgun", buySprite.position.x, buySprite.position.z))
             gold -= handgunCost
             currentGoldText.textContent = `Gold: ${gold}`
+            clearSelection()
         }
-        else if( intersectsRifle.length > 0 ) { //If clicked on buy rifle turret sprite
+        else if( intersectsRifle.length > 0 && gold >= rifleCost) { //If clicked on buy rifle turret sprite
             buyTurret = true
             turretSelection = playerRifle
             buySprite.material = rifleMaterial
@@ -216,7 +221,7 @@ const Game = () =>{
             rangeIndicator.geometry = new THREE.CircleGeometry(buySpriteRange , 32 );
             rangeIndicator.material.needsUpdate = true
         }
-        else if( intersectsShotgun.length > 0 ) { //If clicked on buy shotgun turret sprite
+        else if( intersectsShotgun.length > 0 && gold >= shotgunCost) { //If clicked on buy shotgun turret sprite
             buyTurret = true
             turretSelection = playerShotgun 
             buySprite.material = shotgunMaterial
@@ -225,7 +230,7 @@ const Game = () =>{
             rangeIndicator.geometry = new THREE.CircleGeometry(buySpriteRange , 32 );
             rangeIndicator.material.needsUpdate = true
         }
-        else if( intersectsHandgun.length > 0 ) { //If clicked on buy handgun turret sprite
+        else if( intersectsHandgun.length > 0 && gold >= handgunCost) { //If clicked on buy handgun turret sprite
             buyTurret = true
             turretSelection = playerHandgun
             buySprite.material = handgunMaterial
@@ -251,7 +256,14 @@ const Game = () =>{
             showInfoUI()
         }
         else if(intersectStart.length > 0){ //Clicked start round
-            
+            if(!roundInProgress){ 
+                roundInProgress = true
+                currentSpawn = roundSpawns[currentRound]
+                remainingEnemies = currentSpawn.length
+                startMesh.visible = false
+                startText.textContent = ""
+                //
+            }
         }
         else{ //Check if clicked on turret
             for(let turret of global.turretList){ //Hide all turret ranges
@@ -284,18 +296,17 @@ const Game = () =>{
     document.addEventListener("keydown", keyclick);
     function keyclick(e){
         let keyCode = e.which
+        /*
         if(keyCode == 32){ //SPACE button, For development purposes, spawn basic enemy
-            let newEnemy = new Enemy(1, 15, 19)
+            let newEnemy = new Enemy("zombie",1, 15, 19)
             global.enemyList.push(newEnemy)
-        }
-        else if(keyCode == 27){ //ESC button, cancel turret selection
-            buyTurret = false
-            buySprite.position.set(0, 0.01, 0)
-            rangeIndicator.position.x = buySprite.position.x
-            rangeIndicator.position.z = buySprite.position.z
+        }*/
+        if(keyCode == 27){ //ESC button, cancel turret selection
+            clearSelection()
         }
     }
 
+    //Info UI for selected turret
     function hideInfoUI(){
         infoMesh.visible = false
         currentInfoSprite.visible = false
@@ -311,7 +322,7 @@ const Game = () =>{
         global.scene.remove(upgradeSprite2)
         global.scene.remove(upgradeSprite3)
     }
-
+    //Info UI for selected turret
     function showInfoUI(){
         currentGoldText.textContent = `Gold: ${gold}`
         turretInfo.textContent = `Damage: ${selectedTurret.damage}\n\nRange: ${selectedTurret.range}\n\nFire Rate: ${selectedTurret.fireRate}`
@@ -328,6 +339,13 @@ const Game = () =>{
         global.scene.add(upgradeSprite1)
         global.scene.add(upgradeSprite2)
         global.scene.add(upgradeSprite3)
+    }
+
+    function clearSelection(){
+        buyTurret = false
+        buySprite.position.set(0, 0.01, 0)
+        rangeIndicator.position.x = buySprite.position.x
+        rangeIndicator.position.z = buySprite.position.z
     }
 
     //UI sprites for purchase
@@ -440,7 +458,7 @@ const Game = () =>{
     atr1.className = 'selectionAttributes'
     atr1.textContent = "Damage: 1\n"
     atr1.textContent += "Range: 3\n"
-    atr1.textContent += "Fire rate: 0.25"
+    atr1.textContent += "Fire rate: 0.20"
     let attributeObj1 = new CSS2DObject(atr1);
     attributeObj1.position.set(27, 0.01, 21)
     global.scene.add(attributeObj1)
@@ -461,7 +479,7 @@ const Game = () =>{
 
     let gold1 = document.createElement("div");
     gold1.className = 'turretCost'
-    gold1.textContent = "15"
+    gold1.textContent = `${shotgunCost}`
     let goldObj1 = new CSS2DObject(gold1);
     goldObj1.position.set(25.5, 0.01, 20.1)
     global.scene.add(goldObj1)
@@ -497,7 +515,7 @@ const Game = () =>{
 
     let gold2 = document.createElement("div");
     gold2.className = 'turretCost'
-    gold2.textContent = "5"
+    gold2.textContent = `${handgunCost}`
     let goldObj2 = new CSS2DObject(gold2);
     goldObj2.position.set(25.5, 0.01, 22.6)
     global.scene.add(goldObj2)
@@ -513,7 +531,7 @@ const Game = () =>{
     atr3.className = 'selectionAttributes'
     atr3.textContent = "Damage: 1\n"
     atr3.textContent += "Range: 3.5\n"
-    atr3.textContent += "Fire rate: 0.4"
+    atr3.textContent += "Fire rate: 0.55"
     let attributeObj3 = new CSS2DObject(atr3);
     attributeObj3.position.set(30.2, 0.01, 21)
     global.scene.add(attributeObj3)
@@ -534,7 +552,7 @@ const Game = () =>{
 
     let gold3 = document.createElement("div");
     gold3.className = 'turretCost'
-    gold3.textContent = "20"
+    gold3.textContent = `${rifleCost}`
     let goldObj3 = new CSS2DObject(gold3);
     goldObj3.position.set(28.7, 0.01, 20.1)
     global.scene.add(goldObj3)
@@ -699,6 +717,23 @@ const Game = () =>{
     function animate(){
         delta += clock.getDelta()
         if(delta > interval){//limit fps
+            if(roundInProgress && spawnIndex < currentSpawn.length){ //Round in progress
+                if(currentSpawn[spawnIndex].delay <= 0){
+                    global.enemyList.push(new Enemy(currentSpawn[spawnIndex].type,1, 15, 19))
+                    spawnIndex++
+                }
+                else{
+                   currentSpawn[spawnIndex].delay-- 
+                }
+            }
+            if(roundInProgress && remainingEnemies == 0 && spawnIndex == currentSpawn.length){ //Round ended
+                spawnIndex = 0
+                currentRound++
+                roundText.textContent = `Round ${currentRound}`
+                roundInProgress = false
+                startMesh.visible = true
+                startText.textContent = "Start Round"
+            }
             let updatedEnemyList = []
             for(let enemy of global.enemyList){ //Loop through enemy list and do animations/actions
                 if(!enemy.animate()){ //animate returns true if removed from global.scene
@@ -707,6 +742,10 @@ const Game = () =>{
                 else{ //Enemy made it to end
                     health--
                     currentHealthText.textContent = `Health: ${health}`
+                    remainingEnemies--
+                    if(health <= 0){ //NO REMAINING HEALTH GAMEOVER
+
+                    }
                 }
             }
             global.enemyList = updatedEnemyList //Update list to not include enemies removed from global.scene(made it to end of map/killed by turret)
@@ -725,9 +764,13 @@ const Game = () =>{
                 let bulletAlive = true
                 for(let j = 0; j < global.enemyList.length; j++){
                     if(checkCollision(bullet.sprite, global.enemyList[j].sprite)){//If there was a collision between current bullet and enemy
-                        if(global.enemyList[j].takeDamage(bullet.damage)){//returns true if dead
+                        let res = global.enemyList[j].takeDamage(bullet.damage);
+                        if(res > 0){//returns gold value if dead
+                            gold += res
                             global.enemyList.splice(j, 1)
                             j--;
+                            remainingEnemies--
+                            currentGoldText.textContent = `Gold: ${gold}`
                         }
                         if(bullet.hit()){//return true if bullet out of piercing
                             bulletAlive = false
