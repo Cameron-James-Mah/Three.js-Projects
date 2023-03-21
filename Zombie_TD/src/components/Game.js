@@ -801,6 +801,7 @@ const Game = () =>{
             }
             renderer.render( global.scene, camera );
             labelRenderer.render( global.scene, camera );
+            delta = delta % interval;
         }
         if(health > 0 && currentRound < roundSpawns.length){
             requestAnimationFrame( animate );
