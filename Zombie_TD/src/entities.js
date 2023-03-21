@@ -3,6 +3,7 @@ import playerRifle from './sprites/playerRifle0.png'
 import playerShotgun from './sprites/playerShotgun0.png'
 import playerHandgun from './sprites/playerHandgun0.png'
 import skeletonSheet from './sprites/skeleton_spritesheet.png'
+import zombieSheet from './sprites/zombie_spritesheet.png'
 import bulletSheet from './sprites/bulletSheet.png'
 import muzzleFlashSheet from './sprites/muzzleFlashesSheet.png'
 import global from './globals.js'
@@ -17,21 +18,41 @@ export class Enemy{
     material;
     sprite;
     loader;
-    speed = 0.03;
-
+    speed;
+    type
     //Animation variables
     currentTile = 0
     offsetX;
-    tilesHoriz = 17
-    constructor(level, x, z){
-        this.health = level*2
-        this.loader = new THREE.TextureLoader()
-        this.map = this.loader.load( skeletonSheet );
-        this.map.repeat.set(1/this.tilesHoriz, 1)
-        this.material = new THREE.SpriteMaterial( { map: this.map } );
-        this.sprite = new THREE.Sprite( this.material );
-        this.sprite.position.set(x, 0.01, z)
-        this.sprite.scale.set(0.7, 0.7, 0.7)
+    tilesHoriz;
+    gold;
+    constructor(type,level, x, z){
+        if(type == 'skeleton'){
+            this.tilesHoriz = 17
+            this.health = level*2
+            this.speed = 0.03
+            this.loader = new THREE.TextureLoader()
+            this.map = this.loader.load( skeletonSheet );
+            this.map.repeat.set(1/this.tilesHoriz, 1)
+            this.material = new THREE.SpriteMaterial( { map: this.map } );
+            this.sprite = new THREE.Sprite( this.material );
+            this.sprite.position.set(x, 0.01, z)
+            this.sprite.scale.set(0.7, 0.7, 0.7)
+            this.gold = 2
+        }
+        else if(type == 'zombie'){
+            this.tilesHoriz = 32
+            this.health = level*2
+            this.speed = 0.05
+            this.loader = new THREE.TextureLoader()
+            this.map = this.loader.load( zombieSheet );
+            this.map.repeat.set(1/this.tilesHoriz, 1)
+            this.material = new THREE.SpriteMaterial( { map: this.map } );
+            this.sprite = new THREE.Sprite( this.material );
+            this.sprite.position.set(x, 0.01, z)
+            this.sprite.scale.set(2.4, 2.4, 2.4)
+            this.gold = 3
+        }
+        
         global.scene.add(this.sprite)
     }
     getPosition(){
@@ -106,13 +127,13 @@ export class Enemy{
     }
     takeDamage(damage){
         this.health -= damage
-        if(this.health <= 0){
+        if(this.health <= 0){ //If enemy killed 
             this.sprite.geometry.dispose()
             this.sprite.material.dispose()
             global.scene.remove(this.sprite)
-            return true
+            return this.gold
         }
-        return false
+        return 0
     }
 }
 export class turret{
@@ -136,7 +157,7 @@ export class turret{
             this.type = type
             this.piercing = 1
             this.range = 3.5
-            this.fireRate = 0.4
+            this.fireRate = 0.55
             this.damage = 1
             this.fireDelay = 60
             this.map = new THREE.TextureLoader().load( playerRifle );
@@ -150,7 +171,7 @@ export class turret{
             this.type = type
             this.piercing = 1
             this.range = 3
-            this.fireRate = 0.25
+            this.fireRate = 0.20
             this.damage = 1
             this.fireDelay = 60
             this.map = new THREE.TextureLoader().load( playerShotgun );
