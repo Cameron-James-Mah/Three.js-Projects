@@ -1,33 +1,26 @@
-import { useEffect, useState } from "react";
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
+import { useEffect } from "react";
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls'
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import * as THREE from "three"
-import Grass from './Grass'
 import './Game.css'
-
+import global from '../globals.js'
+import {Enemy} from '../entities.js'
+import forestFloor from '../textures/forest_texture.png'
+import stoneWall from '../textures/stone_tiles.png'
 
 
 const Game = () =>{
     let clock = new THREE.Clock()
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
     
-    
     document.body.appendChild( renderer.domElement );
-    const controls = new PointerLockControls(camera, renderer.domElement)
+    const controls = new PointerLockControls(global.camera, renderer.domElement)
     
     const moveSpeed = 0.1
 
-    //Enemy variables, refactor later
-    const monsterSpeed1 = 0.05
-    const monsterRange1 = 20
-    const roamOffset = 30
-    let roaming = false
-    let roamingTo = new THREE.Vector3()
+    const outerBoundaryDistance = 99
     
     //wasd input
     let moveLeft = false
@@ -75,10 +68,6 @@ const Game = () =>{
         else if(keyCode == 68){//d
             moveRight = false
         }
-        else{
-            walking.fadeOut(0.2)
-            action.play()
-        }
     }
 
     function handleMovement(){ //Called in animation loop
@@ -95,148 +84,136 @@ const Game = () =>{
         if(moveBack){
             controls.moveForward(moveSpeed*-1)
         }
+        //Boundary checks for outer perimeter
+        if(global.camera.position.x > outerBoundaryDistance){
+            global.camera.position.x = outerBoundaryDistance
+        }
+        if(global.camera.position.z > outerBoundaryDistance){
+            global.camera.position.z = outerBoundaryDistance
+        }
+        
     }
 
-    const grass = new Grass(500, 150000)
-    scene.add(grass)
+    function replay(){
+        document.location.reload()
+    }
 
+    //ground 
+    let groundTexture = new THREE.TextureLoader().load( forestFloor );
+    groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+    groundTexture.repeat.set( 20, 20 );
+    groundTexture.anisotropy = 16;
+    groundTexture.encoding = THREE.sRGBEncoding;
+    let groundMaterial = new THREE.MeshStandardMaterial( { map: groundTexture } );
+    let groundMesh = new THREE.Mesh( new THREE.PlaneGeometry( 200, 200 ), groundMaterial );
+    groundMesh.position.y = 0.0;
+    groundMesh.rotation.x = - Math.PI / 2;
+    groundMesh.receiveShadow = true;
+    global.scene.add( groundMesh );
 
+    //wall materials
+    let wallTexture = new THREE.TextureLoader().load( stoneWall );
+    wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+    wallTexture.repeat.set( 200, 10 );
+    wallTexture.anisotropy = 16;
+    wallTexture.encoding = THREE.sRGBEncoding;
+    let wallMaterial = new THREE.MeshStandardMaterial( { map: wallTexture } );
+    wallMaterial.side = THREE.DoubleSide
+
+    //wall meshes
+    let wallMesh = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
+    wallMesh.receiveShadow = true;
+    wallMesh.position.set(100, 0, 0)
+    wallMesh.rotation.y = - Math.PI / 2;
+    global.scene.add( wallMesh );
+
+    let wallMesh2 = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
+    wallMesh2.receiveShadow = true;
+    wallMesh2.rotation.y = - Math.PI / 2;
+    wallMesh2.position.set(-100, 0, 0)
+    global.scene.add( wallMesh2 );
+
+    let wallMesh3 = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
+    wallMesh3.receiveShadow = true;
+    wallMesh3.position.set(0, 0, 100)
+    global.scene.add( wallMesh3 );
+
+    let wallMesh4 = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
+    wallMesh4.receiveShadow = true;
+    wallMesh4.position.set(0, 0, -100)
+    global.scene.add( wallMesh4 );
+    
+    //Lighting
+    //Camera lighting
     const spotLight = new THREE.SpotLight(0xffffff, 1.0, 10, Math.PI*0.6, 0, 1)
-    camera.add( spotLight );
-    camera.add(spotLight.target)
+    global.camera.add( spotLight );
+    global.camera.add(spotLight.target)
     spotLight.target.position.z = -8
-    scene.add(camera)
+    global.scene.add(global.camera)
 
-    let mixer;
-    let idle;
-    let action;
-    let walking
+    const safeLight = new THREE.PointLight( 0xff0000, 1, 100 );
+    safeLight.position.set( 0, 10, 0 );
+    global.scene.add( safeLight );
 
-    let animationActions = []
-    let monsters = []
-
-    camera.position.y = 2.5
-    camera.position.z = 15;
+    global.camera.position.y = 2.5
+    global.camera.position.set(90, 2.5, 90)
     
-    const al = new THREE.AmbientLight('white', 2)
-    scene.add(al)
-	
-
-    const loader = new FBXLoader()
-        loader.load('models/zombie.fbx', (fbx)=>{
-            fbx.scale.set(.01, .01, .01)
-            fbx.traverse(c =>{
-                c.castShadow = true
-            })
-            //scene.add(fbx)
-        mixer = new THREE.AnimationMixer(fbx)
-        const anim = new FBXLoader()
-        const listener = new THREE.AudioListener();
-        const sound = new THREE.PositionalAudio( listener );
-        const audioLoader = new THREE.AudioLoader();
-        audioLoader.load( 'sfx/BIGT.ogg', function( buffer ) {
-            sound.setBuffer( buffer );
-            sound.setRefDistance( 5 );
-            sound.setLoop(true)
-            sound.play()
-        });
-        anim.load('animations/Idle.fbx', (anim)=>{
-            idle = mixer.clipAction(anim.animations[0])
-            idle.name = "idle"
-            animationActions.push(idle)
-            //idle.play()
-        })
-        anim.load('animations/Walking.fbx', (anim)=>{
-            walking = mixer.clipAction(anim.animations[0])
-            walking.name = "walking"
-            animationActions.push(walking)
-            walking.play()
-        })
-        anim.load('animations/Flying_Kick.fbx', (anim)=>{
-            action = mixer.clipAction(anim.animations[0])
-            action.name = "action"
-            animationActions.push(action)
-            action.setLoop(THREE.LoopOnce)
-        })
-        mixer.addEventListener('finished', function(e){
-            //console.log(e)
-            for(let animation of animationActions){
-                //console.log(animation)
-                if(e.action.name == animation.name){
-                    mixer.stopAllAction()
-                    walking.play()
-                }
-            }
-        })
-        monsters.push(fbx)
-        scene.add(fbx)
-        camera.add(listener)
-        fbx.add(sound)
-    
-    })
+    //Ambient light for testing purposes
+    //const al = new THREE.AmbientLight('white', 2)
+    //global.scene.add(al)
     
     let clock2 = new THREE.Clock()
     let delta2 = 0
     let interval = 1/60 //60 fps
     
+    const gltfLoader = new GLTFLoader()
+    gltfLoader.load('models/altar.gltf', (altar)=>{
+        altar.scene.scale.set(10, 10, 10)
+        global.scene.add(altar.scene)
+    })
 
-    function move(monster, pos){
-        let movePos = new THREE.Vector3(pos.x, 0, pos.z)
-        //let norm = new THREE.Vector3(playerPos.x-monster.position.x, 0, playerPos.z-monster.position.z)
-        monster.lookAt(movePos)
-        monster.translateZ(monsterSpeed1)
-        if(roaming && monster.position.distanceTo(pos) < 2){//if roaming and made it to roam position
-            //console.log("Finding new roam position")
-            roaming = false
-        }
-    }
-
-    function monsterAction(monster){
-        if(monster.position.distanceTo(camera.position) < monsterRange1){
-            move(monster, camera.position)
-            roaming = false
-        }
-        else{
-            roam(monster)
-        }
-    }
-
-    function roam(monster){
-        //Later on need to make sure roam point is within the map
-        console.log(roaming)
-        if(!roaming){
-            roaming = true
-            let min = monster.position.x - roamOffset
-            let max = monster.position.x + roamOffset
-            let posX = Math.random() * (max - min) + min
-            min = monster.position.z - roamOffset
-            max = monster.position.z + roamOffset
-            let posZ = Math.random() * (max - min) + min
-            roamingTo = new THREE.Vector3(posX, 0, posZ)
-            //console.log(roamingTo)
-        }
-        else{
-            move(monster, roamingTo)
-        }
-    }
+    global.monsters.push(new Enemy())
     useEffect(()=>{
         const menuPanel = document.getElementById('menuPanel')
+        const menuPanel2 = document.getElementById('menuPanel2')
         controls.addEventListener('lock', () => (menuPanel.style.display = 'none'))
-        controls.addEventListener('unlock', () => (menuPanel.style.display = 'block'))
+        controls.addEventListener('unlock', function(){
+            if(!global.dead){
+                menuPanel.style.display = 'block'
+            }
+            else{
+                menuPanel2.style.display = 'block'
+            }
+        })
         menuPanel.style.display = 'none'
+        menuPanel2.style.display = 'none'
         animate()
         function animate() {
             delta2 += clock2.getDelta()
             if(delta2 > interval && menuPanel.style.display != 'block'){
-                renderer.render( scene, camera );
+                //console.log(global.camera.position)
                 const delta = clock.getDelta();
-                handleMovement()
-                if ( mixer ) mixer.update( delta );
-                for(let monster of monsters){
-                    monsterAction(monster)           
+                for(let mixer of global.mixers){ //Loop through all enemy mixers
+                    mixer.update( delta )
+                }
+                for(let monster of global.monsters){ //Loop through all enemies
+                    monster.monsterAction()           
+                }
+                if(global.dead){ //if character dead, show gameover screen
+                    controls.unlock()
+                }
+                else{
+                    handleMovement()
+                    if(global.camera.position.x > -4 && global.camera.position.x < 4 && global.camera.position.z > -4 && global.camera.position.z < 4){
+                        global.inSafeZone = true
+                    }
+                    else{
+                        global.inSafeZone = false
+                    }
                 }
                 
             }
+            renderer.render( global.scene, global.camera );
             requestAnimationFrame( animate );
         
         }
@@ -246,7 +223,9 @@ const Game = () =>{
         <div id="menuPanel">
             <p id="startButton">Click anywhere to continue</p>
         </div>
- 
+        <div id="menuPanel2" onClick={replay}>
+            <p id="startButton">Gameover, click anywhere to replay</p>
+        </div>
         </>
     )
 }   
