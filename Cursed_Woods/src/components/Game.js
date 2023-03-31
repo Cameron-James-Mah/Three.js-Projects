@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import * as THREE from "three"
 import './Game.css'
 import global from '../globals.js'
-import {Enemy} from '../entities.js'
+import {Zombie1, Zombie2, Abomination} from '../entities.js'
 import forestFloor from '../textures/forest_texture.png'
 import stoneWall from '../textures/stone_tiles.png'
 
@@ -18,7 +18,7 @@ const Game = () =>{
     document.body.appendChild( renderer.domElement );
     const controls = new PointerLockControls(global.camera, renderer.domElement)
     
-    const moveSpeed = 0.1
+    const moveSpeed = 0.08
 
     const outerBoundaryDistance = 99
     
@@ -72,17 +72,22 @@ const Game = () =>{
 
     function handleMovement(){ //Called in animation loop
         //Add halve the movement if moving in 2 directions at same time(ex: forward and left)
+        let moving = false
         if(moveLeft){
             controls.moveRight(moveSpeed*-1)
+            moving = true
         }
         if(moveRight){
             controls.moveRight(moveSpeed)
+            moving = true
         }
         if(moveForward){
             controls.moveForward(moveSpeed)
+            moving = true
         }
         if(moveBack){
             controls.moveForward(moveSpeed*-1)
+            moving = true
         }
         //Boundary checks for outer perimeter
         if(global.camera.position.x > outerBoundaryDistance){
@@ -90,6 +95,22 @@ const Game = () =>{
         }
         if(global.camera.position.z > outerBoundaryDistance){
             global.camera.position.z = outerBoundaryDistance
+        }
+        if(global.camera.position.x < outerBoundaryDistance*-1){
+            global.camera.position.x = outerBoundaryDistance*-1
+        }
+        if(global.camera.position.z < outerBoundaryDistance*-1){
+            global.camera.position.z = outerBoundaryDistance*-1
+        }
+        if(moving && Math.floor(Math.random()*20) == 0){ //Don't want to play sound everytime
+            let idx = Math.floor(Math.random()*walkingSound.length)
+            //console.log(idx)
+            walkingSound[idx].play()
+        }
+        else if(!moving){ //Feels too abrupt
+            for(let sound of walkingSound){
+                sound.stop()
+            }
         }
         
     }
@@ -145,44 +166,91 @@ const Game = () =>{
     
     //Lighting
     //Camera lighting
-    const spotLight = new THREE.SpotLight(0xffffff, 1.0, 10, Math.PI*0.6, 0, 1)
+    const spotLight = new THREE.SpotLight(0xffffff, 1, 10, Math.PI*0.6, 0, 1)
     global.camera.add( spotLight );
     global.camera.add(spotLight.target)
     spotLight.target.position.z = -8
     global.scene.add(global.camera)
 
-    const safeLight = new THREE.PointLight( 0xff0000, 1, 100 );
+    const safeLight = new THREE.PointLight( 0xff0000, 1, 40 );
     safeLight.position.set( 0, 10, 0 );
     global.scene.add( safeLight );
 
     global.camera.position.y = 2.5
-    global.camera.position.set(90, 2.5, 90)
+    //global.camera.position.set(90, 2.5, 90)
     
     //Ambient light for testing purposes
     //const al = new THREE.AmbientLight('white', 2)
     //global.scene.add(al)
+
+    //Walking sfx
+    let walkingSound = [] //Contains all walking sound variants, play random one when walking
+    const walkingVolume = 0.4
+    const audioLoader = new THREE.AudioLoader();
+    
+    for(let i = 1; i < 7; i++){
+        audioLoader.load( `sfx/player/walking${i}.ogg`, function( buffer ) {
+            const sound = new THREE.PositionalAudio( global.listener );
+            sound.setBuffer( buffer );
+            sound.setRefDistance( 20 );
+            sound.setLoop(false)
+            sound.setVolume(walkingVolume)
+            walkingSound.push(sound)
+            global.camera.add(sound)
+        });
+    }
+
+    //BG sfx
+    /*
+    audioLoader.load( 'sfx/BG.ogg', function( buffer ) {
+        const sound = new THREE.PositionalAudio( global.listener );
+        sound.setBuffer( buffer );
+        sound.setRefDistance( 200 );
+        sound.setLoop(true)
+        sound.setVolume(1.5)
+        sound.play()
+    });*/
+    
+    
+    global.listener.position.y += 2.5
+    global.camera.add(global.listener)
     
     let clock2 = new THREE.Clock()
     let delta2 = 0
     let interval = 1/60 //60 fps
     
+    //Safe zone 
     const gltfLoader = new GLTFLoader()
     gltfLoader.load('models/altar.gltf', (altar)=>{
         altar.scene.scale.set(10, 10, 10)
         global.scene.add(altar.scene)
     })
-
-    global.monsters.push(new Enemy())
+    //Instantiate monsters
+    global.monsters.push(new Zombie1())
+    global.monsters.push(new Zombie2())
+    global.monsters.push(new Abomination())
     useEffect(()=>{
         const menuPanel = document.getElementById('menuPanel')
         const menuPanel2 = document.getElementById('menuPanel2')
-        controls.addEventListener('lock', () => (menuPanel.style.display = 'none'))
-        controls.addEventListener('unlock', function(){
+        const BGaudio = document.querySelector("audio");
+        BGaudio.volume = 0.8;
+        BGaudio.loop = true
+        controls.addEventListener('lock', function(){
+            menuPanel.style.display = 'none'
+            BGaudio.play()
+        })
+        controls.addEventListener('unlock', function(){ //Fired at pause screen and gameover screen
             if(!global.dead){
                 menuPanel.style.display = 'block'
             }
             else{
                 menuPanel2.style.display = 'block'
+                BGaudio.pause()
+                BGaudio.src = 'sfx/Death_Scream.ogg'
+                BGaudio.volume = 0.1;
+                BGaudio.loop = false
+                BGaudio.play()
+
             }
         })
         menuPanel.style.display = 'none'
@@ -197,7 +265,7 @@ const Game = () =>{
                     mixer.update( delta )
                 }
                 for(let monster of global.monsters){ //Loop through all enemies
-                    monster.monsterAction()           
+                    monster.monsterAction() //Unlocks pointerlockcontrols and fires event listener      
                 }
                 if(global.dead){ //if character dead, show gameover screen
                     controls.unlock()
@@ -226,6 +294,7 @@ const Game = () =>{
         <div id="menuPanel2" onClick={replay}>
             <p id="startButton">Gameover, click anywhere to replay</p>
         </div>
+        <audio src = "sfx/BG.ogg" ></audio>
         </>
     )
 }   
