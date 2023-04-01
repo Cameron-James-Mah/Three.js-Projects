@@ -180,8 +180,8 @@ const Game = () =>{
     //global.camera.position.set(90, 2.5, 90)
     
     //Ambient light for testing purposes
-    //const al = new THREE.AmbientLight('white', 2)
-    //global.scene.add(al)
+    const al = new THREE.AmbientLight('white', 2)
+    global.scene.add(al)
 
     //Walking sfx
     let walkingSound = [] //Contains all walking sound variants, play random one when walking
@@ -221,10 +221,20 @@ const Game = () =>{
     
     //Safe zone 
     const gltfLoader = new GLTFLoader()
+    function loadAltar(){
+        return new Promise(resolve=>{
+            gltfLoader.load('models/altar.gltf', (altar)=>{
+                altar.scene.scale.set(10, 10, 10)
+                global.scene.add(altar.scene)
+                resolve()
+            })
+        })
+    }
+    /*
     gltfLoader.load('models/altar.gltf', (altar)=>{
         altar.scene.scale.set(10, 10, 10)
         global.scene.add(altar.scene)
-    })
+    })*/
     //Instantiate monsters
     //global.monsters.push(new Zombie1())
     //global.monsters.push(new Zombie2())
@@ -233,7 +243,7 @@ const Game = () =>{
     let e1 = new Zombie1()
     let e2 = new Zombie2()
     let e3 = new Abomination()
-    let promises = [e1.load(), e2.load(), e3.load()]
+    let promises = [e1.load(), e2.load(), e3.load(), loadAltar()]
 
     Promise.all(promises).then(()=>{
         //console.log(1)
