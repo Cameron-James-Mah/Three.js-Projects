@@ -180,8 +180,8 @@ const Game = () =>{
     //global.camera.position.set(90, 2.5, 90)
     
     //Ambient light for testing purposes
-    const al = new THREE.AmbientLight('white', 2)
-    global.scene.add(al)
+    //const al = new THREE.AmbientLight('white', 2)
+    //global.scene.add(al)
 
     //Walking sfx
     let walkingSound = [] //Contains all walking sound variants, play random one when walking
