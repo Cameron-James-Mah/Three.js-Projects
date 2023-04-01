@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import * as THREE from "three"
 import './Game.css'
 import global from '../globals.js'
-import {Zombie1, Zombie2, Abomination} from '../entities.js'
+import {Zombie1, Zombie2, Abomination, Enemy} from '../entities.js'
 import forestFloor from '../textures/forest_texture.png'
 import stoneWall from '../textures/stone_tiles.png'
 
@@ -226,12 +226,27 @@ const Game = () =>{
         global.scene.add(altar.scene)
     })
     //Instantiate monsters
-    global.monsters.push(new Zombie1())
-    global.monsters.push(new Zombie2())
-    global.monsters.push(new Abomination())
+    //global.monsters.push(new Zombie1())
+    //global.monsters.push(new Zombie2())
+    //global.monsters.push(new Abomination())
+    let loaded = false
+    let e1 = new Zombie1()
+    let e2 = new Zombie2()
+    let e3 = new Abomination()
+    let promises = [e1.load(), e2.load(), e3.load()]
+
+    Promise.all(promises).then(()=>{
+        //console.log(1)
+        global.monsters.push(e1)
+        global.monsters.push(e2)
+        global.monsters.push(e3)
+        loaded = true
+    })
+
     useEffect(()=>{
         const menuPanel = document.getElementById('menuPanel')
         const menuPanel2 = document.getElementById('menuPanel2')
+        const loadingPanel = document.getElementById('loadingPanel')
         const BGaudio = document.querySelector("audio");
         BGaudio.volume = 0.8;
         BGaudio.loop = true
@@ -258,7 +273,11 @@ const Game = () =>{
         animate()
         function animate() {
             delta2 += clock2.getDelta()
-            if(delta2 > interval && menuPanel.style.display != 'block'){
+            if(loaded){
+                loadingPanel.style.display = 'none'
+            }
+            if(delta2 > interval && menuPanel.style.display != 'block' && loaded){
+                //console.log(global.monsters.length)
                 //console.log(global.camera.position)
                 const delta = clock.getDelta();
                 for(let mixer of global.mixers){ //Loop through all enemy mixers
@@ -293,6 +312,9 @@ const Game = () =>{
         </div>
         <div id="menuPanel2" onClick={replay}>
             <p id="startButton">Gameover, click anywhere to replay</p>
+        </div>
+        <div id="loadingPanel">
+            <p id="startButton">Loading...</p>
         </div>
         <audio src = "sfx/BG.ogg" ></audio>
         </>
