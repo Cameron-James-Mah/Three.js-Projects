@@ -21,13 +21,18 @@ const Game = () =>{
     const moveSpeed = 0.08
 
     const outerBoundaryDistance = 99
+
+    const totalTeddies = 5
+    let currentTeddies = 0
+    let victory = false
     
     //wasd input
     let moveLeft = false
     let moveRight = false
     let moveForward = false
     let moveBack = false
-    
+    let lockedMovement = false //When doing action like picking up teddy or sacrificing teddy
+    let holding = null
 
     window.addEventListener('click', function(){ //Pointerlock controls
         controls.lock()  
@@ -52,6 +57,34 @@ const Game = () =>{
             moveLeft = false
             moveRight = true
         }
+        else if(keyCode == 69){ //e
+            if(global.inSafeZone && holding){ //Sacrificed teddy
+                global.scene.remove(holding)
+                console.log(holding)
+                for(let child of holding.children){ //Look for positional audio child
+                    if(child.name == 'whisper'){ //stop positional audio
+                        child.stop()
+                    }
+                }
+                holding = null
+                
+                sacSound.play()
+                currentTeddies++
+                if(currentTeddies == totalTeddies){
+                    victory = true
+                }
+            }
+            for(let teddy of teddies){//Loop through all teddy bears to see if close to one
+                if(teddy.position.distanceTo(global.camera.position) < 3){ //Picked up teddy
+                    teddies.splice(teddies.indexOf(teddy), 1)
+                    holding = teddy
+                    console.log('picked up teddy')
+                    break
+                }
+            }
+            
+        }
+        
     }
 
     function stopPlayer(event){//Keyup, stop movement
@@ -200,6 +233,15 @@ const Game = () =>{
         });
     }
 
+    const sacSound = new THREE.PositionalAudio( global.listener );
+    audioLoader.load( 'sfx/Teddy_Sacrifice.ogg', function( buffer ) {
+        sacSound.setBuffer( buffer );
+        sacSound.setRefDistance( 20 );
+        sacSound.setLoop(false);
+        sacSound.setVolume(0.8)
+    });
+
+
     //BG sfx
     /*
     audioLoader.load( 'sfx/BG.ogg', function( buffer ) {
@@ -223,9 +265,40 @@ const Game = () =>{
     const gltfLoader = new GLTFLoader()
     function loadAltar(){
         return new Promise(resolve=>{
-            gltfLoader.load('models/altar.gltf', (altar)=>{
-                altar.scene.scale.set(10, 10, 10)
+            gltfLoader.load('models/altar/altar.gltf', (altar)=>{
+                altar.scene.scale.set(10, 5, 10)
+                altar.scene.position.y = 1.3
                 global.scene.add(altar.scene)
+                resolve()
+            })
+        })
+    }
+
+    let teddies = []
+
+    function loadTeddy(posX, posZ){
+        return new Promise(resolve=>{
+            gltfLoader.load('models/teddy/teddy.gltf', (teddy)=>{
+                teddy.scene.scale.set(0.5, 0.5, 0.5)
+                teddy.scene.position.x = posX
+                teddy.scene.position.z = posZ
+                teddy.scene.position.y = 0.1
+                teddy.scene.rotation.x += Math.PI/2
+                teddy.scene.rotation.y += Math.PI/2
+                teddy.scene.rotation.y += Math.PI/2
+                const sound = new THREE.PositionalAudio( global.listener );
+                audioLoader.load( 'sfx/whisper.ogg', function( buffer ) { //zombie sounds
+                    sound.setBuffer( buffer );
+                    sound.setRefDistance( 0.8 );
+                    sound.setRolloffFactor(1.5)
+                    sound.setVolume(7.0)
+                    sound.setLoop(true)
+                    sound.name = 'whisper'
+                    sound.play()
+                });
+                teddy.scene.add(sound)
+                global.scene.add(teddy.scene)
+                teddies.push(teddy.scene)
                 resolve()
             })
         })
@@ -243,7 +316,7 @@ const Game = () =>{
     let e1 = new Zombie1()
     let e2 = new Zombie2()
     let e3 = new Abomination()
-    let promises = [e1.load(), e2.load(), e3.load(), loadAltar()]
+    let promises = [e1.load(), e2.load(), e3.load(), loadAltar(), loadTeddy(0, 15), loadTeddy(50, 10), loadTeddy(50, 50), loadTeddy(30, 60), loadTeddy(70, 90)]
 
     Promise.all(promises).then(()=>{
         //console.log(1)
@@ -258,6 +331,10 @@ const Game = () =>{
         const menuPanel2 = document.getElementById('menuPanel2')
         const loadingPanel = document.getElementById('loadingPanel')
         const BGaudio = document.querySelector("audio");
+        const actionDiv = document.getElementById('actionText')
+        const actionText = document.getElementById('actionText')
+        const startButton = document.getElementById('startButton')
+        const scoreText = document.getElementById('scoreText')
         BGaudio.volume = 0.8;
         BGaudio.loop = true
         controls.addEventListener('lock', function(){
@@ -280,15 +357,17 @@ const Game = () =>{
         })
         menuPanel.style.display = 'none'
         menuPanel2.style.display = 'none'
+        actionDiv.style.display = 'none'
         animate()
         function animate() {
             delta2 += clock2.getDelta()
             if(loaded){
                 loadingPanel.style.display = 'none'
             }
-            if(delta2 > interval && menuPanel.style.display != 'block' && loaded){
+            if(delta2 > interval && menuPanel.style.display != 'block' && loaded && !victory){
                 //console.log(global.monsters.length)
                 //console.log(global.camera.position)
+                scoreText.innerHTML = `Sacrificed: ${currentTeddies}/${totalTeddies}`
                 const delta = clock.getDelta();
                 for(let mixer of global.mixers){ //Loop through all enemy mixers
                     mixer.update( delta )
@@ -296,6 +375,25 @@ const Game = () =>{
                 for(let monster of global.monsters){ //Loop through all enemies
                     monster.monsterAction() //Unlocks pointerlockcontrols and fires event listener      
                 }
+                let teddyInRange = false
+                for(let teddy of teddies){//Loop through all teddy bears to see if close to one
+                    if(teddy.position.distanceTo(global.camera.position) < 3){//teddy in range
+                        teddyInRange = true
+                        break;
+                    }
+                }
+                if(teddyInRange){
+                    actionDiv.style.display = 'block'
+                    actionText.innerHTML = 'Click e to pick up Teddy Bear'
+                }
+                else if(global.inSafeZone && holding){
+                    actionDiv.style.display = 'block'
+                    actionText.innerHTML = 'Click e to sacrifice Teddy Bear' 
+                }
+                else{
+                    actionDiv.style.display = 'none'
+                }
+                
                 if(global.dead){ //if character dead, show gameover screen
                     controls.unlock()
                 }
@@ -308,10 +406,30 @@ const Game = () =>{
                         global.inSafeZone = false
                     }
                 }
+                if(holding){
+                    let v = new THREE.Vector3( 0, 0, 1 );
+                    v.applyQuaternion( global.camera.quaternion );
+                    holding.quaternion.copy(global.camera.quaternion);
+                    holding.position.copy(global.camera.position).add(v.multiplyScalar(-0.5));
+                    holding.position.y -= 1
+                    holding.rotation.y += Math.PI/2
+                    holding.rotation.y += Math.PI/2
+                    holding.rotation.y += Math.PI/2
+                    holding.rotation.y += Math.PI/2
+                    holding.lookAt(global.camera.position)
+                }
                 
             }
-            renderer.render( global.scene, global.camera );
-            requestAnimationFrame( animate );
+            if(victory){
+                menuPanel2.style.backgroundColor = 'green'
+                startButton.innerHTML = 'Victory'
+                menuPanel2.style.display = 'block'
+            }
+            else{
+                renderer.render( global.scene, global.camera );
+                requestAnimationFrame( animate );
+            }
+            
         
         }
     },[])
@@ -326,6 +444,10 @@ const Game = () =>{
         <div id="loadingPanel">
             <p id="startButton">Loading...</p>
         </div>
+        <div id = 'actionDiv'>
+            <p id = "actionText">Click e to pick up Teddy Bear</p>
+        </div>
+        <p id = 'scoreText'>Sacrificed 0/0</p>
         <audio src = "sfx/BG.ogg" ></audio>
         </>
     )

@@ -37,7 +37,8 @@ export class Zombie1{
             audioLoader.load( 'sfx/Zombie/Zombie_Breathing.ogg', function( buffer ) { //zombie sounds
                 sound.setBuffer( buffer );
                 sound.setRefDistance( 1.3 );
-                sound.setVolume(1.5)
+                sound.setRolloffFactor(0.8)
+                sound.setVolume(4.5)
                 sound.setLoop(true)
                 sound.play()
                 loaded++
@@ -110,7 +111,7 @@ export class Zombie1{
         if(!this.roaming){
             this.roaming = true
             let posZ, posX = -200
-            while(posX > -100 && posX < 100 && posZ > -100 && posZ < 100){//make sure roaming to position within boundary
+            while(posX < -100 || posX > 100 || posZ < -100 || posZ > 100){//make sure roaming to position within boundary
                 let min = this.fbx.position.x - this.roamOffset
                 let max = this.fbx.position.x + this.roamOffset
                 posX = Math.random() * (max - min) + min
@@ -118,7 +119,6 @@ export class Zombie1{
                 max = this.fbx.position.z + this.roamOffset
                 posZ = Math.random() * (max - min) + min
             }
-            
             this.roamingTo = new THREE.Vector3(posX, 0, posZ)
             //console.log(roamingTo)
         }
@@ -164,7 +164,8 @@ export class Zombie2{
             audioLoader.load( 'sfx/Zombie/Zombie_Breathing.ogg', function( buffer ) { //zombie sounds
                 sound.setBuffer( buffer );
                 sound.setRefDistance( 1 );
-                sound.setVolume(1.5)
+                sound.setRolloffFactor(0.8)
+                sound.setVolume(3.5)
                 sound.setLoop(true)
                 sound.play()
                 loaded++
@@ -289,7 +290,8 @@ export class Abomination{
             audioLoader.load( 'sfx/Abomination/Abomination_Screaming.ogg', function( buffer ) { //zombie sounds
                 sound.setBuffer( buffer );
                 sound.setRefDistance( 1.2 );
-                sound.setVolume(4.5)
+                sound.setVolume(5.5)
+                sound.setRolloffFactor(1)
                 sound.setLoop(true)
                 sound.play()
                 loaded++
