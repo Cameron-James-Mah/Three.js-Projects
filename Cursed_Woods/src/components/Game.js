@@ -365,6 +365,7 @@ const Game = () =>{
                 loadingPanel.style.display = 'none'
             }
             if(delta2 > interval && menuPanel.style.display != 'block' && loaded && !victory){
+                delta2 = delta2 % interval
                 //console.log(global.monsters.length)
                 //console.log(global.camera.position)
                 scoreText.innerHTML = `Sacrificed: ${currentTeddies}/${totalTeddies}`
