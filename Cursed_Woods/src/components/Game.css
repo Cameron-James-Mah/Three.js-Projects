@@ -13,6 +13,29 @@
     position: relative;
     font-size: 2rem;
 }
+#actionDiv {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+}
+#actionText {
+    top: 40%;
+    color: white;
+    text-align: center;
+    position: relative;
+    font-size: 2rem;
+}
+
+#scoreText {
+    top: 3%;
+    right: 3%;
+    color: white;
+    text-align: center;
+    position: absolute;
+    font-size: 2rem;
+}
 
 #menuPanel2 {
     position: absolute;
