@@ -11,6 +11,17 @@
     top: 40%;
     text-align: center;
     position: relative;
+    margin-left: 20%;
+    margin-right: 20%;
+    font-size: 2rem;
+}
+
+#startButton2 {
+    top: 40%;
+    text-align: center;
+    position: relative;
+    margin-left: 20%;
+    margin-right: 20%;
     font-size: 2rem;
 }
 #actionDiv {
@@ -44,6 +55,7 @@
     left: 0px;
     width: 100%;
     height: 100%;
+    z-index: 10;
 }
 
 #loadingPanel {

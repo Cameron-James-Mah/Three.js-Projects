@@ -14,6 +14,7 @@ export class Zombie1{
     action;
     walking;
     fbx;
+    sfx;
     animationActions = [];
     constructor(){
         this.roaming = false
@@ -33,12 +34,13 @@ export class Zombie1{
             const anim = new FBXLoader()
             //const listener = new THREE.AudioListener();
             const sound = new THREE.PositionalAudio( global.listener );
+            this.sfx = sound
             const audioLoader = new THREE.AudioLoader();
             audioLoader.load( 'sfx/Zombie/Zombie_Breathing.ogg', function( buffer ) { //zombie sounds
                 sound.setBuffer( buffer );
                 sound.setRefDistance( 1.3 );
                 sound.setRolloffFactor(0.8)
-                sound.setVolume(4.5)
+                sound.setVolume(4.5*global.volumeOffset)
                 sound.setLoop(true)
                 sound.play()
                 loaded++
@@ -70,6 +72,7 @@ export class Zombie1{
             this.fbx = fbx
             //global.monsters.push(fbx)
             this.fbx.position.x += spawnOffset
+            this.fbx.position.z -= spawnOffset
             global.mixers.push(this.mixer)
             global.scene.add(fbx)
             fbx.add(sound)
@@ -90,6 +93,12 @@ export class Zombie1{
     monsterAction(){
         if(!this.fbx){//If fbx has not loaded yet
             return
+        }
+        if(global.hunted){
+            this.sfx.stop()
+        }
+        else{
+            this.sfx.play()
         }
         if(this.fbx.position.distanceTo(global.camera.position) < 3 && !global.inSafeZone){ //in attack range and not in safe zone
             this.walking.fadeOut(0.2)
@@ -141,6 +150,7 @@ export class Zombie2{
     action;
     walking;
     fbx;
+    sfx;
     animationActions = [];
     constructor(){
         this.roaming = false
@@ -160,12 +170,13 @@ export class Zombie2{
             const anim = new FBXLoader()
             //const listener = new THREE.AudioListener();
             const sound = new THREE.PositionalAudio( global.listener );
+            this.sfx = sound
             const audioLoader = new THREE.AudioLoader();
             audioLoader.load( 'sfx/Zombie/Zombie_Breathing.ogg', function( buffer ) { //zombie sounds
                 sound.setBuffer( buffer );
                 sound.setRefDistance( 1 );
                 sound.setRolloffFactor(0.8)
-                sound.setVolume(3.5)
+                sound.setVolume(3.5*global.volumeOffset)
                 sound.setLoop(true)
                 sound.play()
                 loaded++
@@ -217,6 +228,12 @@ export class Zombie2{
         if(!this.fbx){//If fbx has not loaded yet
             return
         }
+        if(global.hunted){
+            this.sfx.stop()
+        }
+        else{
+            this.sfx.play()
+        }
         if(this.fbx.position.distanceTo(global.camera.position) < 3 && !global.inSafeZone){ //in attack range and not in safe zone
             this.walking.fadeOut(0.2)
             this.walking.stop()
@@ -258,7 +275,7 @@ export class Zombie2{
 
 export class Abomination{
     speed = 0.08;
-    range = 20;
+    range = 30;
     roamOffset = 30;
     roaming;
     roamingTo;
@@ -290,7 +307,7 @@ export class Abomination{
             audioLoader.load( 'sfx/Abomination/Abomination_Screaming.ogg', function( buffer ) { //zombie sounds
                 sound.setBuffer( buffer );
                 sound.setRefDistance( 1.2 );
-                sound.setVolume(5.5)
+                sound.setVolume(5.5*global.volumeOffset)
                 sound.setRolloffFactor(1)
                 sound.setLoop(true)
                 sound.play()
@@ -368,6 +385,159 @@ export class Abomination{
         }
         else{
             this.roam()
+        }
+    }
+
+    roam(){
+        //Later on need to make sure roam point is within the map
+        if(!this.roaming){
+            this.roaming = true
+            let posZ, posX = -200
+            while(posX < -100 || posX > 100 || posZ < -100 || posZ > 100){//make sure roaming to position within boundary
+                let min = this.fbx.position.x - this.roamOffset
+                let max = this.fbx.position.x + this.roamOffset
+                posX = Math.random() * (max - min) + min
+                min = this.fbx.position.z - this.roamOffset
+                max = this.fbx.position.z + this.roamOffset
+                posZ = Math.random() * (max - min) + min
+            }
+            
+            this.roamingTo = new THREE.Vector3(posX, 0, posZ)
+            //console.log(roamingTo)
+        }
+        else{
+            this.move(this.roamingTo)
+        }
+    }
+
+}
+
+export class Mannequin{
+    speed = 0.125;
+    range = 45;
+    roamOffset = 30;
+    roaming;
+    roamingTo;
+    mixer;
+    idle;
+    action;
+    walking;
+    fbx;
+    sfx;
+    animationActions = [];
+    constructor(){
+        this.roaming = false
+        this.roamingTo = new THREE.Vector3()
+    }
+    load(){
+        return new Promise(resolve=>{
+            let loaded = 0
+            const loader = new FBXLoader()
+            loader.load('models/mannequin.fbx', (fbx)=>{
+                fbx.scale.set(.015, .015, .015)
+                fbx.traverse(c =>{
+                    c.castShadow = true
+                })
+                //global.scene.add(fbx)
+            this.mixer = new THREE.AnimationMixer(fbx)
+            const anim = new FBXLoader()
+            //const listener = new THREE.AudioListener();
+            const sound = new THREE.PositionalAudio( global.listener );
+            this.sfx = sound
+            const audioLoader = new THREE.AudioLoader();
+            audioLoader.load( 'sfx/mannequin/thud.ogg', function( buffer ) { //zombie sounds
+                sound.setBuffer( buffer );
+                sound.setRefDistance( 1.5 );
+                sound.setVolume(6.5*global.volumeOffset)
+                sound.setRolloffFactor(1)
+                sound.setLoop(true)
+                //sound.play()
+                loaded++
+                if(loaded == 3){
+                    resolve()
+                }
+                //Abomination sfx only when hes chasing you
+            });
+            anim.load('animations/Running.fbx', (anim)=>{
+                this.walking = this.mixer.clipAction(anim.animations[0])
+                this.walking.name = "walking"
+                //this.animationActions.push(this.walking)
+                this.walking.play()
+                loaded++
+                if(loaded == 3){
+                    resolve()
+                }
+            })
+            anim.load('animations/Drop_Kick.fbx', (anim)=>{
+                this.action = this.mixer.clipAction(anim.animations[0])
+                this.action.name = "action"
+                //this.animationActions.push(action)
+                //this.action.setLoop(THREE.LoopOnce)
+                loaded++
+                if(loaded == 3){
+                    resolve()
+                }
+            })
+            this.fbx = fbx
+            //global.monsters.push(fbx)
+            this.fbx.position.x = 0
+            this.fbx.position.z += spawnOffset
+            global.mixers.push(this.mixer)
+            global.scene.add(fbx)
+            fbx.add(sound) 
+    })
+    }
+    )}
+    move(pos){
+        let movePos = new THREE.Vector3(pos.x, 0, pos.z)
+        //let norm = new THREE.Vector3(playerPos.x-monster.position.x, 0, playerPos.z-monster.position.z)
+        this.fbx.lookAt(movePos)
+        this.fbx.translateZ(this.speed)
+        if(this.roaming && this.fbx.position.distanceTo(pos) < 2){//if roaming and made it to roam position
+            //console.log("Finding new roam position")
+            this.roaming = false
+        }
+    }
+
+    monsterAction(){
+        if(!this.fbx){//If fbx has not loaded yet
+            return
+        }
+        if(global.hunted && global.inSafeZone){//player reached safe zone, reset mannequin to outer position
+            let rnd = Math.floor(Math.random() * 4)
+            if(rnd == 0){
+                this.fbx.position.x = 70
+                this.fbx.position.z = 70
+            }
+            else if(rnd == 1){
+                this.fbx.position.x = -70
+                this.fbx.position.z = 70
+            }
+            else if(rnd == 2){
+                this.fbx.position.x = 70
+                this.fbx.position.z = -70
+            }
+            else if(rnd == 3){
+                this.fbx.position.x = -70
+                this.fbx.position.z = 70
+            }
+        }
+        if(this.fbx.position.distanceTo(global.camera.position) < 3 && !global.inSafeZone){ //in attack range and not in safe zone
+            this.walking.fadeOut(0.2)
+            this.walking.stop()
+            this.action.play()
+            global.dead = true
+        }
+        else if(this.fbx.position.distanceTo(global.camera.position) < this.range && !global.inSafeZone){ //in aggro range and not in safe zone
+            this.move(global.camera.position)
+            this.roaming = false
+            this.sfx.play()
+            global.hunted = true
+        }
+        else{
+            this.roam()
+            this.sfx.stop()
+            global.hunted = false
         }
     }
 

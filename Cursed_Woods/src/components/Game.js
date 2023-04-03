@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import * as THREE from "three"
 import './Game.css'
 import global from '../globals.js'
-import {Zombie1, Zombie2, Abomination, Enemy} from '../entities.js'
+import {Zombie1, Zombie2, Abomination, Enemy, Mannequin} from '../entities.js'
 import forestFloor from '../textures/forest_texture.png'
 import stoneWall from '../textures/stone_tiles.png'
 
@@ -64,6 +64,11 @@ const Game = () =>{
                 for(let child of holding.children){ //Look for positional audio child
                     if(child.name == 'whisper'){ //stop positional audio
                         child.stop()
+                        for(let whisper of whispers){
+                            if(whisper == child){
+                                whispers.splice(whispers.indexOf(child), 1)
+                            }
+                        }
                     }
                 }
                 holding = null
@@ -151,6 +156,7 @@ const Game = () =>{
     function replay(){
         document.location.reload()
     }
+    
 
     //ground 
     let groundTexture = new THREE.TextureLoader().load( forestFloor );
@@ -204,6 +210,10 @@ const Game = () =>{
     global.camera.add(spotLight.target)
     spotLight.target.position.z = -8
     global.scene.add(global.camera)
+    //Used for flickering light
+    let lightMax = 120
+    let lightCnt = 0
+    let lightOn = true
 
     const safeLight = new THREE.PointLight( 0xff0000, 1, 40 );
     safeLight.position.set( 0, 10, 0 );
@@ -227,7 +237,7 @@ const Game = () =>{
             sound.setBuffer( buffer );
             sound.setRefDistance( 20 );
             sound.setLoop(false)
-            sound.setVolume(walkingVolume)
+            sound.setVolume(walkingVolume*global.volumeOffset)
             walkingSound.push(sound)
             global.camera.add(sound)
         });
@@ -238,7 +248,7 @@ const Game = () =>{
         sacSound.setBuffer( buffer );
         sacSound.setRefDistance( 20 );
         sacSound.setLoop(false);
-        sacSound.setVolume(0.8)
+        sacSound.setVolume(0.8*global.volumeOffset)
     });
 
 
@@ -275,7 +285,7 @@ const Game = () =>{
     }
 
     let teddies = []
-
+    let whispers = []
     function loadTeddy(posX, posZ){
         return new Promise(resolve=>{
             gltfLoader.load('models/teddy/teddy.gltf', (teddy)=>{
@@ -291,10 +301,11 @@ const Game = () =>{
                     sound.setBuffer( buffer );
                     sound.setRefDistance( 0.8 );
                     sound.setRolloffFactor(1.5)
-                    sound.setVolume(7.0)
+                    sound.setVolume(7.0*global.volumeOffset)
                     sound.setLoop(true)
                     sound.name = 'whisper'
                     sound.play()
+                    whispers.push(sound)
                 });
                 teddy.scene.add(sound)
                 global.scene.add(teddy.scene)
@@ -316,13 +327,15 @@ const Game = () =>{
     let e1 = new Zombie1()
     let e2 = new Zombie2()
     let e3 = new Abomination()
-    let promises = [e1.load(), e2.load(), e3.load(), loadAltar(), loadTeddy(0, 15), loadTeddy(50, 10), loadTeddy(50, 50), loadTeddy(30, 60), loadTeddy(70, 90)]
+    let e4 = new Mannequin()
+    let promises = [e1.load(), e2.load(), e3.load(), e4.load(), loadAltar(), loadTeddy(0, 15), loadTeddy(70, 30), loadTeddy(50, 50), loadTeddy(10, 50), loadTeddy(70, 90)]
 
     Promise.all(promises).then(()=>{
         //console.log(1)
         global.monsters.push(e1)
         global.monsters.push(e2)
         global.monsters.push(e3)
+        global.monsters.push(e4)
         loaded = true
     })
 
@@ -335,11 +348,15 @@ const Game = () =>{
         const actionText = document.getElementById('actionText')
         const startButton = document.getElementById('startButton')
         const scoreText = document.getElementById('scoreText')
-        BGaudio.volume = 0.8;
+        const startButton2 = document.getElementById('startButton2')
+        BGaudio.volume = 0.8*global.volumeOffset;
         BGaudio.loop = true
         controls.addEventListener('lock', function(){
             menuPanel.style.display = 'none'
-            BGaudio.play()
+            if(loaded){
+                BGaudio.play()
+                loadingPanel.style.display = 'none'
+            }
         })
         controls.addEventListener('unlock', function(){ //Fired at pause screen and gameover screen
             if(!global.dead){
@@ -347,11 +364,11 @@ const Game = () =>{
             }
             else{
                 menuPanel2.style.display = 'block'
-                BGaudio.pause()
-                BGaudio.src = 'sfx/Death_Scream.ogg'
-                BGaudio.volume = 0.1;
-                BGaudio.loop = false
-                BGaudio.play()
+                //BGaudio.pause()
+                //BGaudio.src = 'sfx/Death_Scream.ogg'
+                //BGaudio.volume = 0.1;
+                //BGaudio.loop = false
+                //BGaudio.play()
 
             }
         })
@@ -361,8 +378,10 @@ const Game = () =>{
         animate()
         function animate() {
             delta2 += clock2.getDelta()
+            
             if(loaded){
-                loadingPanel.style.display = 'none'
+                //loadingPanel.style.display = 'none'
+                startButton2.innerHTML = 'Click anywhere to continue'
             }
             if(delta2 > interval && menuPanel.style.display != 'block' && loaded && !victory){
                 delta2 = delta2 % interval
@@ -419,6 +438,31 @@ const Game = () =>{
                     holding.rotation.y += Math.PI/2
                     holding.lookAt(global.camera.position)
                 }
+                if(global.hunted){
+                    BGaudio.volume = 0
+                    lightCnt++
+                    if(lightCnt == lightMax){
+                        if(lightOn){
+                            spotLight.intensity = 0
+                            lightOn = false
+                        }
+                        else{
+                           spotLight.intensity = 1
+                           lightOn = true 
+                        }
+                        lightCnt = 0
+                        lightMax = Math.floor(Math.random() * (180 - 60) + 60)
+                    }
+                    for(let whisper of whispers){
+                        whisper.stop()
+                    }
+                }
+                else{
+                    BGaudio.volume = 0.8*global.volumeOffset
+                    for(let whisper of whispers){
+                        whisper.play()
+                    }
+                }
                 
             }
             if(victory){
@@ -443,7 +487,8 @@ const Game = () =>{
             <p id="startButton">Gameover, click anywhere to replay</p>
         </div>
         <div id="loadingPanel">
-            <p id="startButton">Loading...</p>
+            <p id="startButton">These woods are home to many monsters. You are safe at this altar but venture out and you will be hunted. You must find all the teddy bears and sacrifice them at this altar to survive. You can find them by following the whispers. If you ever here the thumping of the mannequin you must IMMEDIATELY hurry back to the safety of the altar</p>
+            <p id="startButton2">Loading...</p>
         </div>
         <div id = 'actionDiv'>
             <p id = "actionText">Click e to pick up Teddy Bear</p>
