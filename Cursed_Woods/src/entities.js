@@ -413,7 +413,7 @@ export class Abomination{
 }
 
 export class Mannequin{
-    speed = 0.125;
+    speed = 0.1;
     range = 45;
     roamOffset = 30;
     roaming;

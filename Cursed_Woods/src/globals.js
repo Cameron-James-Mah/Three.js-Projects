@@ -8,5 +8,5 @@ export default{
     dead: false,
     listener: new THREE.AudioListener(),
     hunted: false,
-    volumeOffset: 0.4
+    volumeOffset: 0.5
 }
