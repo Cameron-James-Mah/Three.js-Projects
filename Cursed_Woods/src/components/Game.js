@@ -462,6 +462,7 @@ const Game = () =>{
                     for(let whisper of whispers){
                         whisper.play()
                     }
+                    spotLight.intensity = 1
                 }
                 
             }
