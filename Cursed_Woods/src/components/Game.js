@@ -18,7 +18,7 @@ const Game = () =>{
     document.body.appendChild( renderer.domElement );
     const controls = new PointerLockControls(global.camera, renderer.domElement)
     
-    const moveSpeed = 0.08
+    const moveSpeed = 0.07
 
     const outerBoundaryDistance = 99
 
@@ -157,52 +157,64 @@ const Game = () =>{
         document.location.reload()
     }
     
+    //loading ground
+    function loadGround(){
+        return new Promise(resolve=>{
+            let loader = new THREE.TextureLoader()
+            loader.load(forestFloor, function(groundTexture){
+                groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+                groundTexture.repeat.set( 20, 20 );
+                groundTexture.anisotropy = 16;
+                groundTexture.encoding = THREE.sRGBEncoding;
+                let groundMaterial = new THREE.MeshStandardMaterial( { map: groundTexture } );
+                let groundMesh = new THREE.Mesh( new THREE.PlaneGeometry( 200, 200 ), groundMaterial );
+                groundMesh.position.y = 0.0;
+                groundMesh.rotation.x = - Math.PI / 2;
+                groundMesh.receiveShadow = true;
+                global.scene.add( groundMesh );
+                resolve()
+            })
+        })
+        
+    }
 
-    //ground 
-    let groundTexture = new THREE.TextureLoader().load( forestFloor );
-    groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
-    groundTexture.repeat.set( 20, 20 );
-    groundTexture.anisotropy = 16;
-    groundTexture.encoding = THREE.sRGBEncoding;
-    let groundMaterial = new THREE.MeshStandardMaterial( { map: groundTexture } );
-    let groundMesh = new THREE.Mesh( new THREE.PlaneGeometry( 200, 200 ), groundMaterial );
-    groundMesh.position.y = 0.0;
-    groundMesh.rotation.x = - Math.PI / 2;
-    groundMesh.receiveShadow = true;
-    global.scene.add( groundMesh );
+    //Loading outer walls
+    function loadWalls(){
+        return new Promise(resolve=>{
+            let loader = new THREE.TextureLoader()
+            loader.load(stoneWall, function(wallTexture){
+                wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+                wallTexture.repeat.set( 200, 10 );
+                wallTexture.anisotropy = 16;
+                wallTexture.encoding = THREE.sRGBEncoding;
+                let wallMaterial = new THREE.MeshStandardMaterial( { map: wallTexture } );
+                wallMaterial.side = THREE.DoubleSide
+                let wallMesh = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
+                wallMesh.receiveShadow = true;
+                wallMesh.position.set(100, 0, 0)
+                wallMesh.rotation.y = - Math.PI / 2;
+                global.scene.add( wallMesh ); 
+                
+                let wallMesh2 = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
+                wallMesh2.receiveShadow = true;
+                wallMesh2.rotation.y = - Math.PI / 2;
+                wallMesh2.position.set(-100, 0, 0)
+                global.scene.add( wallMesh2 );
 
-    //wall materials
-    let wallTexture = new THREE.TextureLoader().load( stoneWall );
-    wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
-    wallTexture.repeat.set( 200, 10 );
-    wallTexture.anisotropy = 16;
-    wallTexture.encoding = THREE.sRGBEncoding;
-    let wallMaterial = new THREE.MeshStandardMaterial( { map: wallTexture } );
-    wallMaterial.side = THREE.DoubleSide
+                let wallMesh3 = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
+                wallMesh3.receiveShadow = true;
+                wallMesh3.position.set(0, 0, 100)
+                global.scene.add( wallMesh3 );
 
-    //wall meshes
-    let wallMesh = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
-    wallMesh.receiveShadow = true;
-    wallMesh.position.set(100, 0, 0)
-    wallMesh.rotation.y = - Math.PI / 2;
-    global.scene.add( wallMesh );
+                let wallMesh4 = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
+                wallMesh4.receiveShadow = true;
+                wallMesh4.position.set(0, 0, -100)
+                global.scene.add( wallMesh4 );
 
-    let wallMesh2 = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
-    wallMesh2.receiveShadow = true;
-    wallMesh2.rotation.y = - Math.PI / 2;
-    wallMesh2.position.set(-100, 0, 0)
-    global.scene.add( wallMesh2 );
-
-    let wallMesh3 = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
-    wallMesh3.receiveShadow = true;
-    wallMesh3.position.set(0, 0, 100)
-    global.scene.add( wallMesh3 );
-
-    let wallMesh4 = new THREE.Mesh( new THREE.PlaneGeometry( 200, 10 ), wallMaterial );
-    wallMesh4.receiveShadow = true;
-    wallMesh4.position.set(0, 0, -100)
-    global.scene.add( wallMesh4 );
-    
+                resolve()
+            })
+        })
+    }
     //Lighting
     //Camera lighting
     const spotLight = new THREE.SpotLight(0xffffff, 1, 10, Math.PI*0.6, 0, 1)
@@ -328,7 +340,7 @@ const Game = () =>{
     let e2 = new Zombie2()
     let e3 = new Abomination()
     let e4 = new Mannequin()
-    let promises = [e1.load(), e2.load(), e3.load(), e4.load(), loadAltar(), loadTeddy(0, 15), loadTeddy(70, 30), loadTeddy(50, 50), loadTeddy(10, 50), loadTeddy(70, 90)]
+    let promises = [e1.load(), e2.load(), e3.load(), e4.load(), loadAltar(), loadGround(), loadWalls(),loadTeddy(0, 15), loadTeddy(70, 30), loadTeddy(50, 50), loadTeddy(10, 50), loadTeddy(70, 90)]
 
     Promise.all(promises).then(()=>{
         //console.log(1)
